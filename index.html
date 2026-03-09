@@ -14,6 +14,68 @@
     <!-- 1. El Mapa -->
     <div id="map"></div>
 
+    <!-- Buscador Inteligente -->
+<!-- Buscador Inteligente con Autocompletado -->
+<!-- Buscador Inteligente con Filtro Numérico de Municipio -->
+<!-- Buscador Inteligente Premium con 39 Municipios -->
+<div id="search-container">
+    <select id="search-municipio" class="premium-select">
+        <option value="TODOS">Todo el Estado</option>
+        <option value="1">Canatlán</option>
+        <option value="2">Canelas</option>
+        <option value="3">Coneto de Comonfort</option>
+        <option value="4">Cuencamé</option>
+        <option value="5">Durango</option>
+        <option value="19">El Oro</option>
+        <option value="7">Gómez Palacio</option>
+        <option value="8">Guadalupe Victoria</option>
+        <option value="9">Guanaceví</option>
+        <option value="10">Hidalgo</option>
+        <option value="11">Indé</option>
+        <option value="12">Lerdo</option>
+        <option value="13">Mapimí</option>
+        <option value="14">Mezquital</option>
+        <option value="15">Nazas</option>
+        <option value="16">Nombre de Dios</option>
+        <option value="17">Nuevo Ideal</option>
+        <option value="18">Ocampo</option>
+        <option value="20">Otáez</option>
+        <option value="21">Pánuco de Coronado</option>
+        <option value="22">Peñón Blanco</option>
+        <option value="23">Poanas</option>
+        <option value="24">Pueblo Nuevo</option>
+        <option value="25">Rodeo</option>
+        <option value="26">San Bernardo</option>
+        <option value="27">San Dimas</option>
+        <option value="28">San Juan de Guadalupe</option>
+        <option value="29">San Juan del Río</option>
+        <option value="30">San Luis del Cordero</option>
+        <option value="31">San Pedro del Gallo</option>
+        <option value="32">Santa Clara</option>
+        <option value="33">Santiago Papasquiaro</option>
+        <option value="6">Simón Bolívar</option>
+        <option value="34">Súchil</option>
+        <option value="35">Tamazula</option>
+        <option value="36">Tepehuanes</option>
+        <option value="37">Tlahualilo</option>
+        <option value="38">Topia</option>
+        <option value="39">Vicente Guerrero</option>
+    </select>
+
+    <select id="search-type" class="premium-select">
+        <option value="seccion">Sección</option>
+        <option value="colonia">Colonia</option>
+        <option value="zona">Zona</option>
+    </select>
+    
+    <div style="position: relative; display: flex; align-items: center;">
+        <input type="text" id="search-input" autocomplete="off" placeholder="Ej: Centro...">
+        <div id="autocomplete-list" class="autocomplete-items"></div>
+    </div>
+    
+    <button id="btn-search">🔍</button>
+</div>
+
     <!-- 2. Control de Capas (Colapsable por Hover) -->
     <div class="layer-control">
         <div class="layer-trigger">

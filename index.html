@@ -3,43 +3,69 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cartografía Electoral</title>
-    
-    <!-- Librería MapLibre GL JS (El motor ultrarrápido para tu mapa) -->
-    <script src="https://unpkg.com/maplibre-gl@3.x/dist/maplibre-gl.js"></script>
-    <link href="https://unpkg.com/maplibre-gl@3.x/dist/maplibre-gl.css" rel="stylesheet" />
-    
-    <!-- Tus estilos -->
+    <title>Sistema Cartográfico | Durango</title>
+    <!-- MapLibre GL JS -->
+    <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
+    <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
 
-    <!-- Pantalla de Login (Se ocultará al iniciar sesión) -->
+    <!-- 1. El Mapa -->
+    <div id="map"></div>
+
+    <!-- 2. Control de Capas (Colapsable por Hover) -->
+    <div class="layer-control">
+        <div class="layer-trigger">
+            <span class="icon">🗺️</span>
+            <span class="label">Capas</span>
+        </div>
+        <div id="layer-menu">
+            <h3>Cartografía Electoral</h3>
+            <label><input type="checkbox" id="check-municipio"> Municipios</label>
+            <label><input type="checkbox" id="check-distrito-fed"> Distrito Federal</label>
+            <label><input type="checkbox" id="check-distrito-local"> Distrito Local</label>
+            <label><input type="checkbox" id="check-zona"> Zonas</label>
+            <label><input type="checkbox" id="check-seccion"> Secciones</label>
+            <label><input type="checkbox" id="check-colonia"> Colonias</label>
+            <label><input type="checkbox" id="check-manzana"> Manzanas</label>
+
+            <hr style="border: 0; border-top: 1px solid var(--border); margin: 15px 0;">
+    
+            <!-- Opción para habilitar/deshabilitar texto -->
+            <label style="color: var(--primary);">
+                <input type="checkbox" id="check-show-labels" checked> 
+                <b>Mostrar Etiquetas</b>
+            </label>
+        </div>
+        </div>
+    </div>
+
+    <!-- 3. Botón Cerrar Sesión (Visible y elegante) -->
+    <button id="btn-logout">Cerrar Sesión</button>
+
+    <!-- 4. Pantalla de Login -->
     <div id="login-screen">
-        <h2>Acceso al Sistema Cartográfico</h2>
-        <input type="email" id="email" placeholder="Correo electrónico">
-        <input type="password" id="password" placeholder="Contraseña">
-        <button id="btn-login">Ingresar</button>
+        <div class="login-card">
+            <div class="logo-container">🗳️</div>
+            <h2>Sistema Cartográfico</h2>
+            <p>Introduce tus credenciales para acceder</p>
+
+            <div class="input-group">
+                <label>Correo Electrónico</label>
+                <input type="email" id="email" placeholder="admin@mapa.com" required>
+            </div>
+
+            <div class="input-group">
+                <label>Contraseña</label>
+                <input type="password" id="password" placeholder="••••••••" required>
+            </div>
+
+            <button id="btn-login">Entrar al Sistema</button>
+        </div>
     </div>
 
-    <!-- Contenedor del Mapa (Oculto por defecto hasta hacer login) -->
-    <div id="map-container" style="display: none;">
-        <!-- Dentro de <div id="map-container"> -->
-<div id="layer-menu">
-    <h3>Capas</h3>
-    <label><input type="checkbox" id="check-municipio" checked> Municipios</label>
-    <label><input type="checkbox" id="check-distrito-fed" checked> Distrito Fed.</label>
-    <label><input type="checkbox" id="check-distrito-local" checked> Distrito Local</label>
-    <label><input type="checkbox" id="check-zona" checked> Zonas</label>
-    <label><input type="checkbox" id="check-seccion" checked> Secciones</label>
-    <label><input type="checkbox" id="check-colonia" checked> Colonias</label>
-    <label><input type="checkbox" id="check-manzana" checked> Manzanas</label>
-</div>
-        <div id="map" style="width: 100vw; height: 100vh;"></div>
-        <button id="btn-logout" style="position: absolute; top: 10px; right: 10px; z-index: 10;">Cerrar Sesión</button>
-    </div>
-
-    <!-- Firebase SDK (Versión modular más reciente) -->
+    <!-- Scripts de Lógica -->
     <script type="module" src="js/firebase-config.js"></script>
     <script type="module" src="js/auth.js"></script>
     <script type="module" src="js/map.js"></script>

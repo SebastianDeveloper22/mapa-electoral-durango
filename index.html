@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Sistema Cartográfico | Durango</title>
     <!-- MapLibre GL JS -->
     <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
@@ -14,10 +14,7 @@
     <!-- 1. El Mapa -->
     <div id="map"></div>
 
-    <!-- Buscador Inteligente -->
-<!-- Buscador Inteligente con Autocompletado -->
-<!-- Buscador Inteligente con Filtro Numérico de Municipio -->
-<!-- Buscador Inteligente Premium con 39 Municipios -->
+
 <div id="search-container">
     <select id="search-municipio" class="premium-select">
         <option value="TODOS">Todo el Estado</option>
@@ -76,96 +73,145 @@
     <button id="btn-search">🔍</button>
 </div>
 
-    <!-- 2. Control de Capas (Colapsable por Hover) -->
-    <div class="layer-control">
-        <div class="layer-trigger">
-            <span class="icon">🗺️</span>
-            <span class="label">Capas</span>
-        </div>
-        <div id="layer-menu">
-            <h3>Cartografía Electoral</h3>
-            <label><input type="checkbox" id="check-municipio"> Municipios</label>
-            <label><input type="checkbox" id="check-distrito-fed"> Distrito Federal</label>
-            <label><input type="checkbox" id="check-distrito-local"> Distrito Local</label>
-            <label><input type="checkbox" id="check-zona"> Zonas</label>
-            <label><input type="checkbox" id="check-seccion"> Secciones</label>
-            <label><input type="checkbox" id="check-colonia"> Colonias</label>
-            <label><input type="checkbox" id="check-manzana"> Manzanas</label>
+    <!-- 2. Control de Capas (Estructura Toggle) -->
+<div class="layer-wrapper">
+    <!-- El botón que siempre está visible -->
+    <button id="btn-layers-toggle" class="layer-fab">
+        <span class="icon">🗺️</span>
+        <span class="text-label">Capas</span>
+    </button>
 
-            <hr style="border: 0; border-top: 1px solid var(--border); margin: 15px 0;">
+    <!-- El menú que se esconde/muestra -->
+    <div id="layer-menu" class="layer-panel">
+        <h3>Cartografía Electoral</h3>
+        <label><input type="checkbox" id="check-municipio"> Municipios</label>
+        <label><input type="checkbox" id="check-distrito-fed"> Distrito Federal</label>
+        <label><input type="checkbox" id="check-distrito-local"> Distrito Local</label>
+        <label><input type="checkbox" id="check-zona"> Zonas</label>
+        <label><input type="checkbox" id="check-seccion"> Secciones</label>
+        <label><input type="checkbox" id="check-colonia"> Colonias</label>
+        <label><input type="checkbox" id="check-manzana"> Manzanas</label>
 
-            <h4 style="margin: 0 0 10px 0; color: #94a3b8; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">Marcadores PP</h4>
-            <label><input type="checkbox" id="check-pin-2023" checked> Obras 2023</label>
-            <label><input type="checkbox" id="check-pin-2024" checked> Obras 2024</label>
-            <label><input type="checkbox" id="check-pin-2025" checked> Obras 2025</label>
-            <label><input type="checkbox" id="check-pin-2026" checked> Obras 2026</label>
+        <hr style="border: 0; border-top: 1px solid var(--border); margin: 15px 0;">
 
-            <hr style="border: 0; border-top: 1px solid var(--border); margin: 15px 0;">
-    
-            <!-- Opción para habilitar/deshabilitar texto -->
-            <label style="color: var(--primary);">
-                <input type="checkbox" id="check-show-labels" checked> 
-                <b>Mostrar Etiquetas</b>
-            </label>
-        </div>
-        </div>
+        <h4 style="margin: 0 0 10px 0; color: #94a3b8; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">Marcadores PP</h4>
+        <label><input type="checkbox" id="check-pin-2023" checked> Obras 2023</label>
+        <label><input type="checkbox" id="check-pin-2024" checked> Obras 2024</label>
+        <label><input type="checkbox" id="check-pin-2025" checked> Obras 2025</label>
+        <label><input type="checkbox" id="check-pin-2026" checked> Obras 2026</label>
+
+        <hr style="border: 0; border-top: 1px solid var(--border); margin: 15px 0;">
+
+        <label style="color: var(--primary);">
+            <input type="checkbox" id="check-show-labels" checked> 
+            <b>Mostrar Etiquetas</b>
+        </label>
     </div>
+</div>
 
     <!-- 3. Botón Cerrar Sesión (Visible y elegante) -->
     <button id="btn-logout">Cerrar Sesión</button>
 
-    <!-- 4. Pantalla de Login -->
-    <div id="login-screen">
-        <div class="login-card">
-            <div class="logo-container">🗳️</div>
-            <h2>Sistema Cartográfico</h2>
-            <p>Introduce tus credenciales para acceder</p>
-
-            <div class="input-group">
-                <label>Correo Electrónico</label>
-                <input type="email" id="email" placeholder="admin@mapa.com" required>
-            </div>
-
-            <div class="input-group">
-                <label>Contraseña</label>
-                <input type="password" id="password" placeholder="••••••••" required>
-            </div>
-
-            <button id="btn-login">Entrar al Sistema</button>
+<!-- PANTALLA DE LOGIN -->
+<div id="login-screen">
+    <div class="login-card">
+        <div class="login-logo">🛰️</div>
+        <h2>Bienvenido</h2>
+        <p>Introduce tus credenciales para acceder al sistema cartográfico de Durango.</p>
+        
+        <div class="login-group">
+            <label>Correo Electrónico</label>
+            <input type="email" id="login-email" class="login-input" placeholder="usuario@dominio.com">
         </div>
-    </div>
-
-    <!-- Scripts de Lógica -->
-    <script type="module" src="js/firebase-config.js"></script>
-    <script type="module" src="js/auth.js"></script>
-    <script type="module" src="js/map.js"></script>
-    <script type="module" src="js/pins.js"></script>
-
-    <!-- MODAL DE REGISTRO DE OBRAS -->
-<div id="pin-modal" class="modal-overlay" style="display: none;">
-    <div class="modal-content">
-        <h3 style="margin-top:0; color: white;">📍 Registrar Obra P.P.</h3>
         
-        <label class="modal-label">Nombre de la obra</label>
-        <input type="text" id="pin-nombre" class="premium-input" placeholder="Ej. Parque Recreativo...">
+        <div class="login-group">
+            <label>Contraseña</label>
+            <input type="password" id="login-password" class="login-input" placeholder="••••••••">
+        </div>
         
-        <label class="modal-label">Tipo de obra</label>
-        <input type="text" id="pin-tipo" class="premium-input" placeholder="Ej. Pavimentación, Domo...">
+        <button id="btn-login">Iniciar Sesión</button>
         
-        <label class="modal-label">Año (Generación)</label>
-        <select id="pin-anio" class="premium-input">
-            <option value="2023">2023</option>
-            <option value="2024">2024</option>
-            <option value="2025">2025</option>
-            <option value="2026">2026</option>
-        </select>
-        
-        <div class="modal-actions">
-            <button id="btn-cancel-pin" class="btn-cancel">Cancelar</button>
-            <button id="btn-save-pin" class="btn-save">Guardar Obra</button>
+        <div class="login-footer">
+            S.I.G. v2.0 | Estado de Durango
         </div>
     </div>
 </div>
+
+<!-- MODAL DE REGISTRO DE OBRAS PP -->
+<div id="pin-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
+        <h3 id="modal-title">📍 Nueva Obra P.P.</h3>
+        <p class="modal-subtitle">Ingresa los detalles técnicos de la obra en esta ubicación.</p>
+        
+        <div class="form-group">
+            <label class="modal-label">Nombre del Proyecto</label>
+            <input type="text" id="pin-nombre" class="premium-input" placeholder="Ej. Pavimentación Calle Juárez">
+        </div>
+        
+        <div class="form-group">
+            <label class="modal-label">Tipo de Obra</label>
+            <input type="text" id="pin-tipo" class="premium-input" placeholder="Ej. Infraestructura Hidráulica">
+        </div>
+        
+        <div class="form-group">
+            <label class="modal-label">Año de Ejecución</label>
+            <select id="pin-anio" class="premium-input">
+                <option value="2023">Generación 2023</option>
+                <option value="2024">Generación 2024</option>
+                <option value="2025">Generación 2025</option>
+                <option value="2026">Generación 2026</option>
+            </select>
+        </div>
+        
+        <div class="modal-actions">
+            <button id="btn-cancel-pin" class="btn-cancel">Cancelar</button>
+            <button id="btn-save-pin" class="btn-save">Guardar Cambios</button>
+        </div>
+    </div>
+</div>
+
+<!-- BOTÓN DEL PANEL ADMIN (Oculto por defecto) -->
+    <button id="btn-admin-panel" class="layer-fab admin-fab" style="display: none; position: absolute; top: 25px; right: 25px; z-index: 1000;">
+        🛡️ Panel Admin
+    </button>
+
+    <!-- MODAL DEL PANEL DE ADMINISTRACIÓN -->
+    <div id="admin-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content admin-content">
+            <div class="admin-header-flex">
+                <h3>🛡️ Gestión de Usuarios</h3>
+                <button id="btn-close-admin" class="btn-cancel-icon">✖</button>
+            </div>
+            <p class="modal-subtitle">Controla quién tiene acceso al sistema y sus permisos.</p>
+            
+            <!-- Agregar nuevo usuario -->
+            <div class="admin-add-user">
+                <input type="email" id="new-user-email" class="premium-input" placeholder="Correo del usuario...">
+                <select id="new-user-role" class="premium-input">
+                    <option value="lector">Lector</option>
+                    <option value="editor">Editor</option>
+                    <option value="admin">Admin</option>
+                </select>
+                <button id="btn-add-user" class="btn-save">Agregar</button>
+            </div>
+
+            <!-- Lista de Usuarios Existentes -->
+            <div class="admin-user-list-header">
+                <span>Usuario</span>
+                <span>Rol / Acción</span>
+            </div>
+            <div id="admin-user-list" class="admin-users-container">
+                <!-- Se llenará con JavaScript -->
+            </div>
+        </div>
+    </div>
+
+        <!-- Scripts de Lógica -->
+    <script type="module" src="js/firebase-config.js"></script>
+    <script type="module" src="js/auth.js"></script>
+    <script type="module" src="js/admin.js"></script>
+    <script type="module" src="js/map.js"></script>
+    <script type="module" src="js/pins.js"></script>
 
 </body>
 </html>

@@ -1,6 +1,7 @@
 // js/map.js
 
-const map = new maplibregl.Map({
+// 1. Exportamos el mapa correctamente para que otros archivos lo puedan usar
+export const map = new maplibregl.Map({
     container: 'map',
     style: {
         'version': 8,
@@ -113,7 +114,7 @@ map.on('load', () => {
 
     if (labelToggle) labelToggle.addEventListener('change', updateLayerVisibility);
 
-    // --- POPUPS INTERACTIVOS ---
+    // --- POPUPS INTERACTIVOS DE CAPAS ---
     map.on('click', (e) => {
         const activeClickableIds = layerNames
             .filter(n => document.getElementById(`check-${n}`)?.checked)
@@ -204,7 +205,6 @@ map.on('load', () => {
             
             features.forEach(f => {
                 if (f.properties && f.properties[columnName]) {
-                    // Convertimos la clave del municipio a texto para comparar
                     let munProp = f.properties[columnMunicipio] !== undefined ? String(f.properties[columnMunicipio]) : 'TODOS';
                     
                     if (municipioFiltro === 'TODOS' || munProp === municipioFiltro) {
@@ -309,4 +309,22 @@ map.on('load', () => {
 
 });
 
-export { map };
+// ==========================================
+// LÓGICA DEL MENÚ DE CAPAS (INTERFAZ)
+// ==========================================
+const btnLayers = document.getElementById('btn-layers-toggle');
+const layerMenu = document.getElementById('layer-menu');
+
+if (btnLayers && layerMenu) {
+    btnLayers.addEventListener('click', (e) => {
+        e.stopPropagation();
+        layerMenu.classList.toggle('active');
+        if (window.navigator.vibrate) window.navigator.vibrate(5);
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!layerMenu.contains(e.target) && e.target !== btnLayers) {
+            layerMenu.classList.remove('active');
+        }
+    });
+}

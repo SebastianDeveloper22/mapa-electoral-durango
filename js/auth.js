@@ -86,6 +86,7 @@ onAuthStateChanged(auth, async (user) => {
 
         verificarAccesoAdmin(); // Verificamos si es admin para mostrar el botón
         
+        
         // 2. Restauramos el texto del botón por si acaso
         if(btnLogin) {
             btnLogin.innerText = "Iniciar Sesión";

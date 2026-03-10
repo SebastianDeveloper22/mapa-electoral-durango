@@ -1,6 +1,6 @@
 // js/admin.js
 import { db } from './firebase-config.js';
-import { collection, getDocs, addDoc, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { collection, getDocs, addDoc, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
 
 const btnAdminPanel = document.getElementById('btn-admin-panel');
 const adminModal = document.getElementById('admin-modal');

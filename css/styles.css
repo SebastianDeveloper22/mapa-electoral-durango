@@ -698,3 +698,15 @@ select.premium-input {
     transition: 0.2s;
 }
 .btn-delete-user:hover { background: #f87171; color: white; }
+
+/* Estilo para la Trazabilidad en el Popup */
+.popup-traceability {
+    margin-top: 15px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    font-size: 10px;
+    color: var(--text-muted);
+    text-align: center;
+    font-style: italic;
+}
+.popup-traceability span { color: #38bdf8; font-weight: 600; }

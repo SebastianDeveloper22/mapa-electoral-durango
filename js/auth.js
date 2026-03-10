@@ -82,10 +82,11 @@ if (btnLogin) {
 onAuthStateChanged(auth, async (user) => {
     if (user) {
         // 1. Si hay usuario, primero buscamos su rol en la base de datos
+        localStorage.setItem('userEmail', user.email);
         await fetchAndSetUserRole(user.email);
 
         verificarAccesoAdmin(); // Verificamos si es admin para mostrar el botón
-        
+
         
         // 2. Restauramos el texto del botón por si acaso
         if(btnLogin) {
@@ -117,6 +118,7 @@ if (btnLogout) {
     btnLogout.addEventListener('click', () => {
         signOut(auth).then(() => {
             console.log("Sesión cerrada");
+            localStorage.removeItem('userEmail'); // Limpiamos la memoria
             localStorage.removeItem('userRole'); // Limpiamos la memoria
             window.location.reload(); // Recargamos para limpiar el mapa visualmente
         });

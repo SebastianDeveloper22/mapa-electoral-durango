@@ -1,9 +1,10 @@
 // js/pins.js
 import { map } from './map.js'; // 🌟 LA LÍNEA MÁGICA
 import { db } from './firebase-config.js';
-import { collection, addDoc, getDocs, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { collection, addDoc, getDocs, doc, updateDoc, deleteDoc, getDoc } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
 
 // Variables globales para el control de los pines
+let datosObrasGlobales = []; // Para usar en las estadísticas
 let marcadores = []; 
 let editandoId = null; 
 let coordsTemporales = null;
@@ -21,14 +22,10 @@ const modalTitle = document.getElementById('modal-title');
 // 1. DISEÑO DEL POPUP (CON PERMISOS RBAC)
 // ==========================================
 const crearHTMLPopup = (data, id) => {
-    // Si la imagen no existe en tu carpeta local, se ocultará automáticamente gracias al onerror
     const logoPath = `./img/logo-pp-${data.anio}.png`;
     const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${data.coords.lat},${data.coords.lng}`;
-    
-    // 🛡️ SEGURIDAD: Leemos qué rol tiene el usuario activo
     const userRole = localStorage.getItem('userRole') || 'lector';
     
-    // Condicionamos los botones: Solo admin y editor pueden verlos
     let botonesEdicion = '';
     if (userRole === 'admin' || userRole === 'editor') {
         botonesEdicion = `
@@ -37,31 +34,33 @@ const crearHTMLPopup = (data, id) => {
         `;
     }
 
-    // HTML del Popup Premium
+    // ✨ NUEVO: Trazabilidad (Si es una obra vieja que no tenía autor, dice "Sistema")
+    const creador = data.creadoPor || 'Sistema Base';
+    const fecha = data.fechaCreacion || 'Fecha desconocida';
+
     return `
         <div class="popup-container">
             <div class="popup-header">Obra P.P. ${data.anio}</div>
-            
             <div class="popup-logo-box">
                 <img src="${logoPath}" alt="Logo" onerror="this.parentElement.style.display='none'">
             </div>
-
             <div class="popup-data-list">
                 <div class="popup-item">
-                    <span class="popup-key">Nombre de la obra</span>
+                    <span class="popup-key">Nombre</span>
                     <span class="popup-val">${data.nombre}</span>
                 </div>
                 <div class="popup-item">
-                    <span class="popup-key">Tipo de intervención</span>
+                    <span class="popup-key">Intervención</span>
                     <span class="popup-val">${data.tipo}</span>
                 </div>
             </div>
-
             <div class="popup-actions">
-                <a href="${googleMapsUrl}" target="_blank" class="btn-popup btn-route">
-                    🗺️ Trazar Ruta
-                </a>
+                <a href="${googleMapsUrl}" target="_blank" class="btn-popup btn-route">🗺️ Ruta</a>
                 ${botonesEdicion}
+            </div>
+            <!-- SECCIÓN DE TRAZABILIDAD -->
+            <div class="popup-traceability">
+                Registrado por <span>${creador}</span><br>${fecha}
             </div>
         </div>
     `;
@@ -71,39 +70,77 @@ const crearHTMLPopup = (data, id) => {
 // 2. CARGAR Y DIBUJAR PINES DE FIRESTORE
 // ==========================================
 export const cargarPines = async () => {
-    // Limpiar marcadores anteriores si estamos recargando
     marcadores.forEach(m => m.remove());
     marcadores = [];
+    datosObrasGlobales = []; // ✨ NUEVO: Limpiamos el arreglo global
 
     try {
         const querySnapshot = await getDocs(collection(db, "obras"));
-        
         querySnapshot.forEach((doc) => {
             const data = doc.data();
             const id = doc.id;
+            
+            datosObrasGlobales.push(data); // ✨ NUEVO: Guardamos para las estadísticas
 
-            // 1. Crear el elemento visual (El pin)
             const el = document.createElement('div');
-            el.className = `marker-pin pin-${data.anio}`; // Añade la clase de color por año
+            el.className = `marker-pin pin-${data.anio}`;
             el.innerText = '📍';
 
-            // 2. Crear el Popup (Burbuja de información)
-            const popup = new maplibregl.Popup({ offset: 25, closeButton: false })
-                .setHTML(crearHTMLPopup(data, id));
-
-            // 3. Agregar el marcador al mapa
-            const marker = new maplibregl.Marker({ element: el })
-                .setLngLat([data.coords.lng, data.coords.lat])
-                .setPopup(popup)
-                .addTo(map);
-
-            // Guardar en el arreglo por si necesitamos borrarlos todos después
+            const popup = new maplibregl.Popup({ offset: 25, closeButton: false }).setHTML(crearHTMLPopup(data, id));
+            const marker = new maplibregl.Marker({ element: el }).setLngLat([data.coords.lng, data.coords.lat]).setPopup(popup).addTo(map);
             marcadores.push(marker);
         });
     } catch (error) {
         console.error("Error cargando los pines:", error);
     }
 };
+
+// ==========================================
+// 📊 LÓGICA DEL PANEL DE ESTADÍSTICAS
+// ==========================================
+const btnStats = document.getElementById('btn-stats');
+const statsModal = document.getElementById('stats-modal');
+const btnCloseStats = document.getElementById('btn-close-stats');
+const statsContainer = document.getElementById('stats-container');
+
+if (btnStats) {
+    btnStats.addEventListener('click', () => {
+        // Calculamos estadísticas al vuelo usando el arreglo global
+        const total = datosObrasGlobales.length;
+        
+        // Contar por año
+        const porAnio = datosObrasGlobales.reduce((acc, obra) => {
+            acc[obra.anio] = (acc[obra.anio] || 0) + 1;
+            return acc;
+        }, {});
+
+        // Crear el HTML de los resultados
+        let htmlStats = `
+            <div class="popup-item" style="background: rgba(56, 189, 248, 0.1); border-left: 3px solid #38bdf8;">
+                <span class="popup-key" style="font-size: 14px; color: #38bdf8;">Total de Obras Mapeadas</span>
+                <span class="popup-val" style="font-size: 20px;">${total}</span>
+            </div>
+            <h4 style="color: white; margin: 15px 0 5px 0; font-size: 12px; text-transform: uppercase;">Obras por Año</h4>
+        `;
+
+        // Añadir cada año al HTML
+        for (const [anio, cantidad] of Object.entries(porAnio)) {
+            htmlStats += `
+                <div class="popup-item">
+                    <span class="popup-key">Presupuesto ${anio}</span>
+                    <span class="popup-val">${cantidad}</span>
+                </div>
+            `;
+        }
+
+        statsContainer.innerHTML = htmlStats;
+        statsModal.style.display = 'flex';
+    });
+
+    btnCloseStats.addEventListener('click', () => {
+        statsModal.style.display = 'none';
+    });
+}
 
 // ==========================================
 // 3. AGREGAR PINES NUEVOS (CLIC DERECHO)
@@ -137,39 +174,47 @@ btnSavePin.addEventListener('click', async () => {
     const nombre = inputNombre.value.trim();
     const tipo = inputTipo.value.trim();
     const anio = inputAnio.value;
+    
+    // Obtenemos el correo del autor desde la memoria
+    const userEmail = localStorage.getItem('userEmail') || 'Usuario Desconocido';
+    const fechaActual = new Date().toLocaleDateString('es-MX', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 
     if (!nombre || !tipo) {
         alert("Por favor, completa todos los campos.");
         return;
     }
 
-    const obraData = {
-        nombre: nombre,
-        tipo: tipo,
-        anio: anio,
-        coords: { lat: coordsTemporales.lat, lng: coordsTemporales.lng }
-    };
-
     try {
         btnSavePin.innerText = "Guardando...";
         
         if (editandoId) {
-            // ACTUALIZAR OBRA EXISTENTE
-            await updateDoc(doc(db, "obras", editandoId), obraData);
-            console.log("Obra actualizada");
+            // ACTUALIZAR (Solo cambiamos los datos y quién lo editó al final)
+            await updateDoc(doc(db, "obras", editandoId), {
+                nombre: nombre,
+                tipo: tipo,
+                anio: anio,
+                coords: { lat: coordsTemporales.lat, lng: coordsTemporales.lng },
+                ultimaEdicionPor: userEmail,
+                fechaEdicion: fechaActual
+            });
         } else {
-            // CREAR OBRA NUEVA
-            await addDoc(collection(db, "obras"), obraData);
-            console.log("Obra guardada");
+            // CREAR NUEVO (Estampamos el creador original)
+            await addDoc(collection(db, "obras"), {
+                nombre: nombre,
+                tipo: tipo,
+                anio: anio,
+                coords: { lat: coordsTemporales.lat, lng: coordsTemporales.lng },
+                creadoPor: userEmail,
+                fechaCreacion: fechaActual
+            });
         }
 
         pinModal.style.display = 'none';
         btnSavePin.innerText = "Guardar Cambios";
-        cargarPines(); // Recargar el mapa para ver los cambios
+        cargarPines(); // Recarga el mapa
 
     } catch (error) {
-        console.error("Error guardando la obra:", error);
-        alert("Ocurrió un error al guardar.");
+        console.error("Error guardando:", error);
         btnSavePin.innerText = "Guardar Cambios";
     }
 });
@@ -184,13 +229,35 @@ btnCancelPin.addEventListener('click', () => {
 // ==========================================
 // Como los botones se crean de forma dinámica, capturamos el clic a nivel del documento
 document.addEventListener('click', async (e) => {
-    // 🛡️ BOTÓN BORRAR
+// 🛡️ BOTÓN BORRAR (Con envío a la Papelera)
     if (e.target.classList.contains('btn-delete')) {
         const id = e.target.getAttribute('data-id');
-        if (confirm("¿Estás seguro de eliminar esta obra? Esta acción no se puede deshacer.")) {
+        
+        if (confirm("¿Estás seguro de eliminar esta obra? Quedará un registro en la auditoría.")) {
             try {
-                await deleteDoc(doc(db, "obras", id));
+                // 1. Quién y cuándo lo borra
+                const userEmail = localStorage.getItem('userEmail') || 'Desconocido';
+                const fechaActual = new Date().toLocaleDateString('es-MX', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+                const docRef = doc(db, "obras", id);
+                
+                // 2. Leemos la obra antes de que desaparezca
+                const docSnap = await getDoc(docRef);
+                
+                if (docSnap.exists()) {
+                    // 3. La guardamos en la "papelera" de Firestore
+                    await addDoc(collection(db, "papelera"), {
+                        ...docSnap.data(), // Copia toda la info de la obra
+                        borradoPor: userEmail,
+                        fechaBorrado: fechaActual
+                    });
+                }
+
+                // 4. Ahora sí, la destruimos del mapa visible
+                await deleteDoc(docRef);
                 cargarPines(); // Refrescar mapa
+                console.log("Obra eliminada y enviada a la papelera.");
+
             } catch (error) {
                 console.error("Error al borrar:", error);
             }

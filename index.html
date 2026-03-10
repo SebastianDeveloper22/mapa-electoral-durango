@@ -93,6 +93,14 @@
             <label><input type="checkbox" id="check-manzana"> Manzanas</label>
 
             <hr style="border: 0; border-top: 1px solid var(--border); margin: 15px 0;">
+
+            <h4 style="margin: 0 0 10px 0; color: #94a3b8; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">Marcadores PP</h4>
+            <label><input type="checkbox" id="check-pin-2023" checked> Obras 2023</label>
+            <label><input type="checkbox" id="check-pin-2024" checked> Obras 2024</label>
+            <label><input type="checkbox" id="check-pin-2025" checked> Obras 2025</label>
+            <label><input type="checkbox" id="check-pin-2026" checked> Obras 2026</label>
+
+            <hr style="border: 0; border-top: 1px solid var(--border); margin: 15px 0;">
     
             <!-- Opción para habilitar/deshabilitar texto -->
             <label style="color: var(--primary);">
@@ -132,6 +140,32 @@
     <script type="module" src="js/auth.js"></script>
     <script type="module" src="js/map.js"></script>
     <script type="module" src="js/pins.js"></script>
+
+    <!-- MODAL DE REGISTRO DE OBRAS -->
+<div id="pin-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
+        <h3 style="margin-top:0; color: white;">📍 Registrar Obra P.P.</h3>
+        
+        <label class="modal-label">Nombre de la obra</label>
+        <input type="text" id="pin-nombre" class="premium-input" placeholder="Ej. Parque Recreativo...">
+        
+        <label class="modal-label">Tipo de obra</label>
+        <input type="text" id="pin-tipo" class="premium-input" placeholder="Ej. Pavimentación, Domo...">
+        
+        <label class="modal-label">Año (Generación)</label>
+        <select id="pin-anio" class="premium-input">
+            <option value="2023">2023</option>
+            <option value="2024">2024</option>
+            <option value="2025">2025</option>
+            <option value="2026">2026</option>
+        </select>
+        
+        <div class="modal-actions">
+            <button id="btn-cancel-pin" class="btn-cancel">Cancelar</button>
+            <button id="btn-save-pin" class="btn-save">Guardar Obra</button>
+        </div>
+    </div>
+</div>
 
 </body>
 </html>

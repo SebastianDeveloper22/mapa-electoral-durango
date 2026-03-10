@@ -347,3 +347,137 @@ body, html {
     color: white;
     font-weight: 800;
 }
+
+/* --- MODAL DE REGISTRO (DARK GLASS) --- */
+.modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(5px);
+    z-index: 9999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    background: rgba(15, 23, 42, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 25px;
+    width: 320px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+    display: flex;
+    flex-direction: column;
+}
+
+.modal-label {
+    font-size: 11px;
+    color: #94a3b8;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+    margin-top: 15px;
+}
+
+.premium-input {
+    background: #0f172a;
+    border: 1px solid rgba(255,255,255,0.1);
+    color: white;
+    padding: 10px;
+    border-radius: 8px;
+    font-family: 'Inter', sans-serif;
+    outline: none;
+    transition: 0.3s;
+}
+
+.premium-input:focus {
+    border-color: #38bdf8;
+    box-shadow: 0 0 5px rgba(56, 189, 248, 0.3);
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 25px;
+    gap: 10px;
+}
+
+.btn-cancel, .btn-save {
+    padding: 10px;
+    border-radius: 8px;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+    flex: 1;
+    transition: 0.2s;
+}
+
+.btn-cancel {
+    background: transparent;
+    color: #f87171;
+    border: 1px solid #f87171;
+}
+
+.btn-cancel:hover { background: rgba(248, 113, 113, 0.1); }
+
+.btn-save {
+    background: #38bdf8;
+    color: #0f172a;
+}
+
+.btn-save:hover { background: #0ea5e9; }
+
+/* --- COLORES PARA LOS PINES DE CADA AÑO --- */
+.marker-pin {
+    font-size: 24px;
+    filter: drop-shadow(0 4px 4px rgba(0,0,0,0.5));
+    transition: transform 0.2s;
+}
+.marker-pin:hover { transform: scale(1.2) translateY(-5px); z-index: 1000; }
+
+/* Efecto visual de color según año (Aplicado sobre el emoji) */
+.pin-2023 { filter: hue-rotate(90deg) drop-shadow(0 4px 4px rgba(0,0,0,0.5)); } /* Verde */
+.pin-2024 { filter: hue-rotate(200deg) drop-shadow(0 4px 4px rgba(0,0,0,0.5)); } /* Azul Oscuro */
+.pin-2025 { filter: hue-rotate(280deg) drop-shadow(0 4px 4px rgba(0,0,0,0.5)); } /* Morado */
+.pin-2026 { filter: hue-rotate(0deg) drop-shadow(0 4px 4px rgba(0,0,0,0.5)); } /* Rojo Normal */
+
+/* --- BOTONES DE ACCIÓN EN EL POPUP --- */
+.popup-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* Divide en 2 columnas */
+    gap: 8px;
+    margin-top: 12px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    padding-top: 10px;
+}
+
+.btn-popup {
+    padding: 8px;
+    border: none;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: 0.2s;
+    font-family: 'Inter', sans-serif;
+    text-align: center;
+}
+
+/* El nuevo botón de Ruta ocupa las 2 columnas */
+.btn-route {
+    grid-column: span 2; 
+    background: #10b981; /* Verde esmeralda estilo Maps */
+    color: #022c22;
+    text-decoration: none; /* Porque es un enlace <a> */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 5px;
+}
+.btn-route:hover { background: #34d399; transform: translateY(-1px); }
+
+.btn-edit { background: #38bdf8; color: #0f172a; }
+.btn-edit:hover { background: #0ea5e9; }
+
+.btn-delete { background: transparent; color: #f87171; border: 1px solid #f87171; }
+.btn-delete:hover { background: rgba(248, 113, 113, 0.1); }

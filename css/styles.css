@@ -421,8 +421,9 @@ body, html {
 /* =========================================
    6. MARCADORES Y PINES POR AÑO
 ========================================= */
-.marker-pin { font-size: 24px; filter: drop-shadow(0 4px 4px rgba(0,0,0,0.5)); transition: transform 0.2s; cursor: pointer; }
-.marker-pin:hover { transform: scale(1.2) translateY(-5px); z-index: 1000; }
+.marker-pin { font-size: 24px; filter: drop-shadow(0 4px 4px rgba(0,0,0,0.5)); transition: background-color 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease !important; cursor: pointer; }
+.marker-pin:hover { box-shadow: 0 0 15px rgba(255, 255, 255, 0.8);
+    cursor: pointer; z-index: 1000; }
 
 /* Colores por año */
 .pin-2023 { filter: hue-rotate(90deg) drop-shadow(0 4px 4px rgba(0,0,0,0.5)); }

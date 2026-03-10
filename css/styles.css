@@ -481,3 +481,46 @@ body, html {
 
 .btn-delete { background: transparent; color: #f87171; border: 1px solid #f87171; }
 .btn-delete:hover { background: rgba(248, 113, 113, 0.1); }
+
+/* =========================================
+   DISEÑO RESPONSIVO (MÓVILES Y TABLETS)
+========================================= */
+@media (max-width: 768px) {
+    /* El buscador se adapta al ancho y manda el input abajo */
+    #search-container {
+        width: 90%;
+        flex-wrap: wrap; /* Permite que los elementos bajen de línea */
+        top: 10px;
+        padding: 10px;
+    }
+
+    #search-input {
+        width: calc(100% - 50px); /* Ocupa todo el espacio menos el botón */
+        margin-top: 8px;
+    }
+
+    #btn-search {
+        margin-top: 8px;
+    }
+
+    /* El menú de capas se hace más compacto y deslizable */
+    #layer-menu {
+        width: 180px;
+        max-height: 40vh; /* Solo ocupa el 40% de la pantalla para dejar ver el mapa */
+        overflow-y: auto;
+        top: auto;
+        bottom: 25px; /* Lo pasamos abajo para que sea fácil de tocar con el pulgar */
+        left: 10px;
+        padding: 12px;
+    }
+
+    #layer-menu h3 {
+        font-size: 13px;
+    }
+
+    /* El modal de registro ocupa toda la pantalla */
+    .modal-content {
+        width: 90%;
+        padding: 20px;
+    }
+}

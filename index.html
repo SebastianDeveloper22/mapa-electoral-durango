@@ -223,6 +223,12 @@
             <div id="stats-container" class="popup-data-list" style="margin-top: 15px;">
                 <!-- Se llenará con JavaScript -->
             </div>
+
+            <!-- Botón Exportar a Excel (Agregarlo dentro de stats-modal) -->
+            <button id="btn-export-csv" class="btn-save" style="margin-top: 15px; width: 100%; background: #10b981; border-color: #059669;">
+                📥 Descargar a Excel (CSV)
+            </button>
+
         </div>
     </div>
 
@@ -232,6 +238,14 @@
     <script type="module" src="js/admin.js"></script>
     <script type="module" src="js/map.js"></script>
     <script type="module" src="js/pins.js"></script>
+
+    <!-- BARRA DE FILTROS FLOTANTE (Solo Tipos de Obra) -->
+    <div id="quick-filters" class="quick-filters-container">
+        <button class="filter-chip active" data-filter="all">Todas</button>
+        <button class="filter-chip" data-filter="Agua Potable">💧 Agua</button>
+        <button class="filter-chip" data-filter="Pavimentación">🛣️ Pavimentación</button>
+        <!-- Puedes agregar más tipos aquí después si quieres -->
+    </div>
 
 </body>
 </html>

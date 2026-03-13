@@ -86,6 +86,10 @@ export const cargarPines = async () => {
             el.className = `marker-pin pin-${data.anio}`;
             el.innerText = '📍';
 
+            // ✨ NUEVO: Le inyectamos los datos al HTML del pin para los filtros
+            el.dataset.anio = data.anio;
+            el.dataset.tipo = data.tipo;
+
             const popup = new maplibregl.Popup({ offset: 25, closeButton: false }).setHTML(crearHTMLPopup(data, id));
             const marker = new maplibregl.Marker({ element: el }).setLngLat([data.coords.lng, data.coords.lat]).setPopup(popup).addTo(map);
             marcadores.push(marker);
@@ -299,4 +303,100 @@ document.addEventListener('click', async (e) => {
 // (Asumimos que la variable 'map' ya está definida globalmente en map.js)
 map.on('load', () => {
     cargarPines();
+});
+
+// ==========================================
+// 📥 DESCARGAR A EXCEL (CSV)
+// ==========================================
+const btnExportCsv = document.getElementById('btn-export-csv');
+if (btnExportCsv) {
+    btnExportCsv.addEventListener('click', () => {
+        if (datosObrasGlobales.length === 0) {
+            alert("No hay obras en el mapa para exportar.");
+            return;
+        }
+        
+        // \uFEFF ayuda a que Excel lea los acentos (á, é, í, ó, ú) correctamente
+        let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
+        csvContent += "Nombre de la Obra,Tipo de Intervención,Año,Latitud,Longitud,Registrado Por,Fecha de Registro\n";
+        
+        datosObrasGlobales.forEach(obra => {
+            const nombre = `"${obra.nombre || ''}"`; // Comillas por si llevan comas en el texto
+            const tipo = `"${obra.tipo || ''}"`;
+            const anio = obra.anio || '';
+            const lat = obra.coords?.lat || '';
+            const lng = obra.coords?.lng || '';
+            const creador = obra.creadoPor || 'Sistema';
+            const fecha = obra.fechaCreacion || '';
+            
+            csvContent += `${nombre},${tipo},${anio},${lat},${lng},${creador},${fecha}\n`;
+        });
+        
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `Reporte_Obras_${new Date().getFullYear()}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    });
+}
+
+// ==========================================
+// 🎛️ FILTROS UNIFICADOS (AÑOS LATERAL + TIPO ABAJO)
+// ==========================================
+const normalizarTexto = (texto) => {
+    if (!texto) return "";
+    return texto.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+};
+
+const chipsFiltros = document.querySelectorAll('.filter-chip');
+const checkboxesLateralPP = document.querySelectorAll('input[type="checkbox"][id^="check-pin-"]');
+
+const aplicarFiltrosCombinados = () => {
+    // 1. Qué tipo de obra está seleccionada abajo
+    const chipActivo = document.querySelector('.filter-chip.active');
+    const filtroTipo = chipActivo ? chipActivo.getAttribute('data-filter') : 'all';
+    const filtroLimpio = normalizarTexto(filtroTipo);
+
+    // 2. Qué años están encendidos en el menú lateral
+    const aniosActivos = [];
+    if (document.getElementById('check-pin-2023')?.checked) aniosActivos.push('2023');
+    if (document.getElementById('check-pin-2024')?.checked) aniosActivos.push('2024');
+    if (document.getElementById('check-pin-2025')?.checked) aniosActivos.push('2025');
+    if (document.getElementById('check-pin-2026')?.checked) aniosActivos.push('2026');
+
+    // 3. Evaluar y mostrar/ocultar cada pin
+    marcadores.forEach(m => {
+        const pinHTML = m.getElement();
+        const anioPin = pinHTML.dataset.anio;
+        const tipoPin = normalizarTexto(pinHTML.dataset.tipo);
+
+        // ¿El año del pin está marcado con palomita en el menú lateral?
+        const pasaAnio = aniosActivos.includes(anioPin);
+
+        // ¿El tipo de obra coincide con el botón azul de abajo?
+        const pasaTipo = (filtroTipo === 'all') || tipoPin.includes(filtroLimpio);
+
+        // Si cumple ambas reglas, lo mostramos. Si no, lo ocultamos.
+        if (pasaAnio && pasaTipo) {
+            pinHTML.style.display = ''; 
+        } else {
+            pinHTML.style.display = 'none';
+        }
+    });
+};
+
+// Evento: Al hacer clic en los botones flotantes (Agua, Pavimentación, etc.)
+chipsFiltros.forEach(chip => {
+    chip.addEventListener('click', (e) => {
+        chipsFiltros.forEach(c => c.classList.remove('active'));
+        e.target.classList.add('active');
+        aplicarFiltrosCombinados();
+    });
+});
+
+// Evento: Al encender o apagar las palomitas de los años en el panel lateral
+checkboxesLateralPP.forEach(cb => {
+    cb.addEventListener('change', aplicarFiltrosCombinados);
 });

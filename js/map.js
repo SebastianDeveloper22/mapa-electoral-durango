@@ -1,5 +1,3 @@
-// js/map.js
-
 // 1. Exportamos el mapa correctamente para que otros archivos lo puedan usar
 export const map = new maplibregl.Map({
     container: 'map',
@@ -23,7 +21,7 @@ export const map = new maplibregl.Map({
 });
 
 map.on('load', () => {
-    console.log("Sistema cartográfico estable cargado.");
+    console.log("Sistema cartográfico cargado.");
 
     map.addSource('cartografia-electoral', {
         'type': 'vector',
@@ -137,7 +135,7 @@ map.on('load', () => {
             popupHtml += `<div class="popup-item">
                             <span class="popup-key">${key}</span>
                             <span class="popup-val">${props[key]}</span>
-                          </div>`;
+                            </div>`;
         }
         popupHtml += `</div></div>`;
 

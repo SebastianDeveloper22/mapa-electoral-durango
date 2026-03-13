@@ -711,3 +711,50 @@ select.premium-input {
     font-style: italic;
 }
 .popup-traceability span { color: #38bdf8; font-weight: 600; }
+
+/* =========================================
+   BARRA DE FILTROS INTERACTIVA
+========================================= */
+.quick-filters-container {
+    position: absolute;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 8px;
+    z-index: 1000;
+    background: rgba(15, 23, 42, 0.7);
+    padding: 10px 15px;
+    border-radius: 25px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+
+.filter-chip {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: var(--text-muted);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.filter-chip:hover {
+    background: rgba(56, 189, 248, 0.2);
+    color: white;
+}
+
+.filter-chip.active {
+    background: #38bdf8;
+    color: #0f172a;
+    font-weight: 700;
+    border-color: #7dd3fc;
+    box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
+}
+
+/* Candados de visibilidad para los pines */
+.oculto-por-filtro-rapido { display: none !important; }
+.oculto-por-menu-lateral { display: none !important; }

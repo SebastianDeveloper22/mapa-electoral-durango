@@ -100,45 +100,127 @@ export const cargarPines = async () => {
 };
 
 // ==========================================
-// 📊 LÓGICA DEL PANEL DE ESTADÍSTICAS
+// 📊 LÓGICA DEL PANEL DE ESTADÍSTICAS (Con Chart.js)
 // ==========================================
 const btnStats = document.getElementById('btn-stats');
 const statsModal = document.getElementById('stats-modal');
 const btnCloseStats = document.getElementById('btn-close-stats');
 const statsContainer = document.getElementById('stats-container');
 
+// Variables para guardar las gráficas y poder borrarlas si se cierra la ventana
+let chartTipos = null;
+let chartAnios = null;
+
 if (btnStats) {
     btnStats.addEventListener('click', () => {
-        // Calculamos estadísticas al vuelo usando el arreglo global
-        const total = datosObrasGlobales.length;
-        
-        // Contar por año
-        const porAnio = datosObrasGlobales.reduce((acc, obra) => {
-            acc[obra.anio] = (acc[obra.anio] || 0) + 1;
-            return acc;
-        }, {});
-
-        // Crear el HTML de los resultados
-        let htmlStats = `
-            <div class="popup-item" style="background: rgba(56, 189, 248, 0.1); border-left: 3px solid #38bdf8;">
-                <span class="popup-key" style="font-size: 14px; color: #38bdf8;">Total de Obras Mapeadas</span>
-                <span class="popup-val" style="font-size: 20px;">${total}</span>
-            </div>
-            <h4 style="color: white; margin: 15px 0 5px 0; font-size: 12px; text-transform: uppercase;">Obras por Año</h4>
-        `;
-
-        // Añadir cada año al HTML
-        for (const [anio, cantidad] of Object.entries(porAnio)) {
-            htmlStats += `
-                <div class="popup-item">
-                    <span class="popup-key">Presupuesto ${anio}</span>
-                    <span class="popup-val">${cantidad}</span>
-                </div>
-            `;
+        if (datosObrasGlobales.length === 0) {
+            alert("No hay obras registradas para graficar.");
+            return;
         }
 
-        statsContainer.innerHTML = htmlStats;
+        const total = datosObrasGlobales.length;
+        
+        // 1. Agrupar datos matemáticamente
+        const conteoPorAnio = {};
+        const conteoPorTipo = {};
+        const nombresVisuales = {};
+
+        datosObrasGlobales.forEach(obra => {
+            const anio = obra.anio || 'Sin Año';
+            const tipoOriginal = (obra.tipo || 'Sin Especificar').trim();
+
+            // Creamos una "llave" oculta: todo minúscula y sin acentos (ej. "pavimentacion")
+            const tipoKey = tipoOriginal.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+           // Si es la primera vez que vemos esta categoría, le creamos su versión "Bonita" para la gráfica
+            if (!nombresVisuales[tipoKey]) {
+                nombresVisuales[tipoKey] = tipoOriginal.charAt(0).toUpperCase() + tipoOriginal.slice(1);
+            }
+
+            // Agrupamos usando la llave oculta
+            conteoPorAnio[anio] = (conteoPorAnio[anio] || 0) + 1;
+            conteoPorTipo[tipoKey] = (conteoPorTipo[tipoKey] || 0) + 1;
+        });
+
+        // 2. Crear los "Lienzos" (Canvas) en el HTML
+        statsContainer.innerHTML = `
+            <div class="popup-item" style="background: rgba(56, 189, 248, 0.1); border-left: 3px solid #38bdf8; margin-bottom: 20px;">
+                <span class="popup-key" style="font-size: 14px; color: #38bdf8;">Total de Obras Mapeadas</span>
+                <span class="popup-val" style="font-size: 24px; font-weight: bold;">${total}</span>
+            </div>
+            <div style="position: relative; height: 200px; width: 100%; margin-bottom: 25px;">
+                <canvas id="canvasTipos"></canvas>
+            </div>
+            <div style="position: relative; height: 200px; width: 100%;">
+                <canvas id="canvasAnios"></canvas>
+            </div>
+        `;
+        
         statsModal.style.display = 'flex';
+
+        // 3. Destruir gráficas viejas (evita bugs de sobreposición)
+        if (chartTipos) chartTipos.destroy();
+        if (chartAnios) chartAnios.destroy();
+
+        // 4. Dibujar Gráfica de Dona (Tipos de Obra)
+        const ctxTipos = document.getElementById('canvasTipos').getContext('2d');
+        chartTipos = new Chart(ctxTipos, {
+            type: 'doughnut',
+            data: {
+                // ✨ NUEVO: Leemos nuestras llaves ocultas y mostramos los nombres bonitos
+                labels: Object.keys(conteoPorTipo).map(key => nombresVisuales[key]),
+                datasets: [{
+                    data: Object.values(conteoPorTipo),
+                    backgroundColor: ['#38bdf8', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#f43f5e'],
+                    borderWidth: 0,
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'right', labels: { color: '#e2e8f0', font: { size: 11 } } },
+                    title: { display: true, text: 'Distribución por Tipo', color: '#94a3b8' }
+                }
+            }
+        });
+
+        // 5. Dibujar Gráfica de Barras (Años)
+        const ctxAnios = document.getElementById('canvasAnios').getContext('2d');
+        const aniosOrdenados = Object.keys(conteoPorAnio).sort(); // Ordenar 2023, 2024...
+        
+        chartAnios = new Chart(ctxAnios, {
+            type: 'bar',
+            data: {
+                labels: aniosOrdenados,
+                datasets: [{
+                    label: 'Obras Registradas',
+                    data: aniosOrdenados.map(anio => conteoPorAnio[anio]),
+                    backgroundColor: '#3b82f6',
+                    borderRadius: 4 // Barras con esquinas redondeadas
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }, // Ocultamos la leyenda porque es obvio que son obras
+                    title: { display: true, text: 'Inversión por Año', color: '#94a3b8' }
+                },
+                scales: {
+                    y: { 
+                        beginAtZero: true, 
+                        ticks: { color: '#94a3b8', stepSize: 1 }, 
+                        grid: { color: 'rgba(255,255,255,0.05)' } 
+                    },
+                    x: { 
+                        ticks: { color: '#e2e8f0', font: { weight: 'bold' } }, 
+                        grid: { display: false } 
+                    }
+                }
+            }
+        });
     });
 
     btnCloseStats.addEventListener('click', () => {

@@ -100,14 +100,13 @@ export const cargarPines = async () => {
 };
 
 // ==========================================
-// 📊 LÓGICA DEL PANEL DE ESTADÍSTICAS (Con Chart.js)
+// 📊 LÓGICA DEL PANEL DE ESTADÍSTICAS (Con Generación Dinámica de Colores Únicos)
 // ==========================================
 const btnStats = document.getElementById('btn-stats');
 const statsModal = document.getElementById('stats-modal');
 const btnCloseStats = document.getElementById('btn-close-stats');
 const statsContainer = document.getElementById('stats-container');
 
-// Variables para guardar las gráficas y poder borrarlas si se cierra la ventana
 let chartTipos = null;
 let chartAnios = null;
 
@@ -120,7 +119,7 @@ if (btnStats) {
 
         const total = datosObrasGlobales.length;
         
-        // 1. Agrupar datos matemáticamente
+        // 1. Agrupar y Sanitizar datos
         const conteoPorAnio = {};
         const conteoPorTipo = {};
         const nombresVisuales = {};
@@ -128,50 +127,81 @@ if (btnStats) {
         datosObrasGlobales.forEach(obra => {
             const anio = obra.anio || 'Sin Año';
             const tipoOriginal = (obra.tipo || 'Sin Especificar').trim();
+            
+            // Función para limpiar texto y agrupar bien
+            const normalizeText = (text) => text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            const tipoKey = normalizeText(tipoOriginal);
 
-            // Creamos una "llave" oculta: todo minúscula y sin acentos (ej. "pavimentacion")
-            const tipoKey = tipoOriginal.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-
-           // Si es la primera vez que vemos esta categoría, le creamos su versión "Bonita" para la gráfica
             if (!nombresVisuales[tipoKey]) {
                 nombresVisuales[tipoKey] = tipoOriginal.charAt(0).toUpperCase() + tipoOriginal.slice(1);
             }
 
-            // Agrupamos usando la llave oculta
             conteoPorAnio[anio] = (conteoPorAnio[anio] || 0) + 1;
             conteoPorTipo[tipoKey] = (conteoPorTipo[tipoKey] || 0) + 1;
         });
 
-        // 2. Crear los "Lienzos" (Canvas) en el HTML
+        // 2. ✨ NUEVO CEREBRO: Función para generar un color ÚNICO y DETERMINISTA (HSL)
+        const getStringHash = (str) => {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                hash = ((hash << 5) - hash) + str.charCodeAt(i);
+                hash = hash & hash;
+            }
+            return Math.abs(hash);
+        };
+
+        const generateUniqueColor = (str) => {
+            const hash = getStringHash(str);
+            // El Hue (H) va de 0 a 360, es el color principal. Esto nos da 360 opciones de inicio.
+            const h = hash % 360;
+            // Saturación (S) y Luminosidad (L) ajustadas para que sean vibrantes y legibles en tema oscuro.
+            const s = (hash % 15) + 65; // S: 65% - 80% (vibrante)
+            const l = (hash % 20) + 50; // L: 50% - 70% (evita oscuros)
+            return `hsl(${h}, ${s}%, ${l}%)`;
+        };
+
+        // 3. Inyectar estructura HTML limpia
         statsContainer.innerHTML = `
             <div class="popup-item" style="background: rgba(56, 189, 248, 0.1); border-left: 3px solid #38bdf8; margin-bottom: 20px;">
                 <span class="popup-key" style="font-size: 14px; color: #38bdf8;">Total de Obras Mapeadas</span>
                 <span class="popup-val" style="font-size: 24px; font-weight: bold;">${total}</span>
             </div>
-            <div style="position: relative; height: 200px; width: 100%; margin-bottom: 25px;">
-                <canvas id="canvasTipos"></canvas>
+            
+            <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; margin-bottom: 25px; height: 180px;">
+                <div style="width: 55%; height: 100%; position: relative;">
+                    <canvas id="canvasTipos"></canvas>
+                </div>
+                <div id="custom-legend" style="width: 45%; height: 100%; overflow-y: auto; padding-left: 10px; border-left: 1px solid rgba(255,255,255,0.1); scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.2) rgba(0,0,0,0);">
+                    </div>
             </div>
-            <div style="position: relative; height: 200px; width: 100%;">
+
+            <div style="position: relative; height: 180px; width: 100%;">
                 <canvas id="canvasAnios"></canvas>
             </div>
         `;
         
         statsModal.style.display = 'flex';
 
-        // 3. Destruir gráficas viejas (evita bugs de sobreposición)
         if (chartTipos) chartTipos.destroy();
         if (chartAnios) chartAnios.destroy();
 
-        // 4. Dibujar Gráfica de Dona (Tipos de Obra)
+        // 4. Procesar datos para la Dona con Colores Dinámicos
+        const labelsTiposKeys = Object.keys(conteoPorTipo);
+        const dataTiposValues = labelsTiposKeys.map(key => conteoPorTipo[key]);
+        const visualLabels = labelsTiposKeys.map(key => nombresVisuales[key]);
+        
+        // ✨ NUEVO: Generamos un color único para cada categoría basándonos en su nombre
+        const backgroundColorsTipos = labelsTiposKeys.map(key => generateUniqueColor(key));
+
+        // 5. Dibujar la Dona
         const ctxTipos = document.getElementById('canvasTipos').getContext('2d');
         chartTipos = new Chart(ctxTipos, {
             type: 'doughnut',
             data: {
-                // ✨ NUEVO: Leemos nuestras llaves ocultas y mostramos los nombres bonitos
-                labels: Object.keys(conteoPorTipo).map(key => nombresVisuales[key]),
+                labels: visualLabels,
                 datasets: [{
-                    data: Object.values(conteoPorTipo),
-                    backgroundColor: ['#38bdf8', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#f43f5e'],
+                    data: dataTiposValues,
+                    backgroundColor: backgroundColorsTipos, // ✨ Colores Únicos Dinámicos ✨
                     borderWidth: 0,
                     hoverOffset: 4
                 }]
@@ -180,44 +210,49 @@ if (btnStats) {
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: { position: 'right', labels: { color: '#e2e8f0', font: { size: 11 } } },
-                    title: { display: true, text: 'Distribución por Tipo', color: '#94a3b8' }
+                    legend: { display: false },
+                    title: { display: true, text: 'Distribución por Tipo', color: '#94a3b8', font: {size: 11} }
                 }
             }
         });
 
-        // 5. Dibujar Gráfica de Barras (Años)
+        // 6. Llenar la Leyenda Custom con scroll
+        const customLegendContainer = document.getElementById('custom-legend');
+        labelsTiposKeys.forEach((key, index) => {
+            customLegendContainer.innerHTML += `
+                <div style="display: flex; align-items: center; margin-bottom: 6px;">
+                    <div style="min-width: 12px; height: 12px; border-radius: 3px; background-color: ${backgroundColorsTipos[index]}; margin-right: 8px;"></div>
+                    <span style="flex-grow: 1; color: #e2e8f0; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 5px;">${nombresVisuales[key]}</span>
+                    <span style="color: #94a3b8; font-size: 11px; font-weight: bold;">${conteoPorTipo[key]}</span>
+                </div>
+            `;
+        });
+
+        // 7. Dibujar Gráfica de Barras
         const ctxAnios = document.getElementById('canvasAnios').getContext('2d');
-        const aniosOrdenados = Object.keys(conteoPorAnio).sort(); // Ordenar 2023, 2024...
+        const aniosOrdenados = Object.keys(conteoPorAnio).sort();
         
         chartAnios = new Chart(ctxAnios, {
             type: 'bar',
             data: {
                 labels: aniosOrdenados,
                 datasets: [{
-                    label: 'Obras Registradas',
+                    label: 'Obras',
                     data: aniosOrdenados.map(anio => conteoPorAnio[anio]),
                     backgroundColor: '#3b82f6',
-                    borderRadius: 4 // Barras con esquinas redondeadas
+                    borderRadius: 4
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: { display: false }, // Ocultamos la leyenda porque es obvio que son obras
-                    title: { display: true, text: 'Inversión por Año', color: '#94a3b8' }
+                    legend: { display: false },
+                    title: { display: true, text: 'Inversión por Año', color: '#94a3b8', font: {size: 11} }
                 },
                 scales: {
-                    y: { 
-                        beginAtZero: true, 
-                        ticks: { color: '#94a3b8', stepSize: 1 }, 
-                        grid: { color: 'rgba(255,255,255,0.05)' } 
-                    },
-                    x: { 
-                        ticks: { color: '#e2e8f0', font: { weight: 'bold' } }, 
-                        grid: { display: false } 
-                    }
+                    y: { beginAtZero: true, ticks: { color: '#94a3b8', stepSize: 1, font: {size: 10} }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                    x: { ticks: { color: '#e2e8f0', font: { weight: 'bold', size: 10 } }, grid: { display: false } }
                 }
             }
         });

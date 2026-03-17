@@ -829,3 +829,46 @@ select.premium-input {
 .maplibregl-popup-content {
     padding-top: 15px !important; 
 }
+
+/* =========================================
+   LEYENDA CUSTOM SCROLLABLE (Estadísticas)
+========================================= */
+#custom-legend {
+    /* Scroll vertical activado */
+    overflow-y: auto; 
+    max-height: 200px; /* Igual que el canvas */
+    /* Estilo sutil del scrollbar para tema oscuro */
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.2) rgba(0,0,0,0);
+}
+
+/* custom legend items styling */
+.legend-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 13px;
+    color: #e2e8f0;
+}
+
+.legend-item-color {
+    width: 14px;
+    height: 14px;
+    border-radius: 4px; /* un poquito redondeado como el original */
+    margin-right: 10px;
+}
+
+.legend-item-label {
+    flex-grow: 1;
+    /* evitar empalmes */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding-right: 10px;
+}
+
+.legend-item-count {
+    color: #94a3b8;
+    font-size: 11px;
+    font-weight: bold;
+}

@@ -214,24 +214,21 @@
 
     <!-- MODAL DE ESTADÍSTICAS -->
     <div id="stats-modal" class="modal-overlay" style="display: none;">
-        <div class="modal-content">
-            <div class="admin-header-flex">
-                <h3>📊 Resumen de Obras</h3>
-                <button id="btn-close-stats" class="btn-cancel-icon">✖</button>
-            </div>
-            <p class="modal-subtitle">Análisis en tiempo real de la cartografía.</p>
-            
-            <div id="stats-container" class="popup-data-list" style="margin-top: 15px;">
-                <!-- Se llenará con JavaScript -->
-            </div>
-
-            <!-- Botón Exportar a Excel (Agregarlo dentro de stats-modal) -->
-            <button id="btn-export-csv" class="btn-save" style="margin-top: 15px; width: 100%; background: #10b981; border-color: #059669;">
-                📥 Descargar a Excel (CSV)
-            </button>
-
+    <div class="modal-content">
+        <div class="admin-header-flex">
+            <h3>📊 Resumen de Obras</h3>
+            <button id="btn-close-stats" class="btn-cancel-icon">✖</button>
         </div>
+        <p class="modal-subtitle">Análisis en tiempo real de la cartografía.</p>
+        
+        <div id="stats-container" class="popup-data-list" style="margin-top: 15px;">
+        </div>
+
+        <button id="btn-export-csv" class="btn-save" style="margin-top: 15px; width: 100%; background: #10b981; border-color: #059669;">
+            📥 Descargar a Excel (CSV)
+        </button>
     </div>
+</div>
 
         <!-- Scripts de Lógica -->
     <script type="module" src="js/firebase-config.js"></script>

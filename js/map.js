@@ -139,13 +139,21 @@ map.on('load', () => {
         }
         popupHtml += `</div></div>`;
 
-        new maplibregl.Popup({ maxWidth: '300px', focusAfterOpen: false })
+        new maplibregl.Popup({ maxWidth: '300px', focusAfterOpen: false, closeButton: true, })
             .setLngLat(e.lngLat)
             .setHTML(popupHtml)
             .addTo(map);
     });
 
+    const cursorMiraPremium = `url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><circle cx="16" cy="16" r="14" stroke="black" stroke-width="2" fill="none" opacity="0.5"/><circle cx="16" cy="16" r="14" stroke="white" stroke-width="2" fill="none"/><line x1="16" y1="2" x2="16" y2="30" stroke="black" stroke-width="2"/><line x1="16" y1="2" x2="16" y2="30" stroke="white" stroke-width="1"/><line x1="2" y1="16" x2="30" y2="16" stroke="black" stroke-width="2"/><line x1="2" y1="16" x2="30" y2="16" stroke="white" stroke-width="1"/><circle cx="16" cy="16" r="1" fill="white" stroke="black" stroke-width="1"/></svg>') 16 16, crosshair`;
+
     map.on('mousemove', (e) => {
+
+        if (window.modoStreetViewActivo){
+            map.getCanvas().style.cursor = cursorMiraPremium;
+            return;
+        }
+
         const activeClickableIds = layerNames
             .filter(n => document.getElementById(`check-${n}`)?.checked)
             .map(n => `layer-${n}-fill`);
@@ -324,5 +332,67 @@ if (btnLayers && layerMenu) {
         if (!layerMenu.contains(e.target) && e.target !== btnLayers) {
             layerMenu.classList.remove('active');
         }
+    });
+}
+
+// ==========================================
+// 🚶‍♂️ MODO STREET VIEW (PEGMAN MAGNÉTICO)
+// ==========================================
+const btnStreetView = document.getElementById('btn-streetview');
+let pegmanMarker = null;
+
+if (btnStreetView) {
+    btnStreetView.addEventListener('click', () => {
+        // 1. Si el monito ya está en el mapa, lo cancelamos y lo borramos
+        if (pegmanMarker) {
+            pegmanMarker.remove();
+            pegmanMarker = null;
+            btnStreetView.innerHTML = '🚶‍♂️ Street View';
+            btnStreetView.style.backgroundColor = '#f59e0b'; // Naranja
+            return;
+        }
+
+        // 2. Si no existe, lo creamos
+        btnStreetView.innerHTML = '❌ Cancelar';
+        btnStreetView.style.backgroundColor = '#ef4444'; // Rojo Tailwind
+
+        // Crear el elemento visual (El emoji del monito parado)
+        const el = document.createElement('div');
+        el.className = 'pegman-marker';
+        el.innerText = '🧍'; 
+
+        // Obtener el centro actual de tu pantalla para que caiga justo ahí
+        const centro = map.getCenter();
+
+        // Crear el marcador con la súper propiedad "draggable" activada
+        pegmanMarker = new maplibregl.Marker({
+            element: el,
+            draggable: true
+        })
+        .setLngLat([centro.lng, centro.lat])
+        .addTo(map);
+
+        // 3. Efecto visual: Cuando lo agarras, parece que camina
+        pegmanMarker.on('dragstart', () => {
+            el.innerText = '🚶‍♂️'; 
+        });
+
+        // 4. EL TRUCO FINAL: Cuando lo sueltas en la calle
+        pegmanMarker.on('dragend', () => {
+            el.innerText = '🧍'; // Vuelve a estar parado
+            const lngLat = pegmanMarker.getLngLat();
+            
+            // Construimos la URL universal de Google Maps en modo 360° (Street View)
+            const url = `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lngLat.lat},${lngLat.lng}`;
+            
+            // Abrimos la nueva pestaña como un rayo
+            window.open(url, '_blank');
+
+            // Limpiamos el mapa: regresamos el botón a la normalidad y borramos al monito
+            pegmanMarker.remove();
+            pegmanMarker = null;
+            btnStreetView.innerHTML = '🚶‍♂️ Street View';
+            btnStreetView.style.backgroundColor = '#f59e0b';
+        });
     });
 }

@@ -758,3 +758,56 @@ select.premium-input {
 /* Candados de visibilidad para los pines */
 .oculto-por-filtro-rapido { display: none !important; }
 .oculto-por-menu-lateral { display: none !important; }
+
+
+/* =========================================
+   ✖ BOTÓN DE CERRAR PARA POPUPS DEL MAPA
+========================================= */
+/* MapLibre crea este botón automáticamente, aquí lo enchulamos */
+.maplibregl-popup-close-button {
+    position: absolute !important;
+    top: 8px !important;
+    right: 8px !important;
+    color: #ffffff !important; /* Tachita color blanco */
+    font-size: 16px !important;
+    background-color: rgba(255, 255, 255, 0.15) !important; /* Fondo grisecito transparente */
+    border-radius: 50% !important; /* Lo hacemos un círculo perfecto */
+    width: 26px !important;
+    height: 26px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border: none !important;
+    cursor: pointer !important;
+    z-index: 9999 !important; /* Para que nada lo tape */
+    transition: all 0.2s ease !important;
+}
+
+/* Efecto al pasar el mouse: Se pone rojo brillante */
+.maplibregl-popup-close-button:hover {
+    background-color: #ef4444 !important; /* Rojo Tailwind */
+    color: #ffffff !important;
+    transform: scale(1.1); /* Crece un poquito */
+}
+
+/* Aseguramos que el botón de cerrar no quite espacio al texto del título */
+.maplibregl-popup-content {
+    position: relative;
+}
+
+/* =========================================
+    🚶‍♂️ MONITO DE STREET VIEW (PEGMAN)
+========================================= */
+.pegman-marker {
+    font-size: 40px;
+    cursor: grab;
+    filter: drop-shadow(0px 5px 5px rgba(0,0,0,0.6));
+    transition: transform 0.1s;
+    z-index: 2000;
+}
+
+/* Efecto cuando lo estás arrastrando */
+.pegman-marker:active {
+    cursor: grabbing;
+    transform: scale(1.2) translateY(-10px); /* Lo levanta un poquito */
+}

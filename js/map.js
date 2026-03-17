@@ -23,6 +23,25 @@ export const map = new maplibregl.Map({
 map.on('load', () => {
     console.log("Sistema cartográfico cargado.");
 
+    // ✨ NUEVO: Agregar fuente y capa de Satélite (Esri World Imagery)
+    map.addSource('esri-satellite', {
+        'type': 'raster',
+        'tiles': [
+            'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+        ],
+        'tileSize': 256,
+        'attribution': '&copy; Esri'
+    });
+
+    map.addLayer({
+        'id': 'satellite-tiles',
+        'type': 'raster',
+        'source': 'esri-satellite',
+        'layout': {
+            'visibility': 'none' // Inicia apagada
+        }
+    });
+
     map.addSource('cartografia-electoral', {
         'type': 'vector',
         'tiles': [window.location.origin + '/tiles/{z}/{x}/{y}.pbf'],
@@ -394,5 +413,38 @@ if (btnStreetView) {
             btnStreetView.innerHTML = '🚶‍♂️ Street View';
             btnStreetView.style.backgroundColor = '#f59e0b';
         });
+    });
+}
+
+// ==========================================
+// 🛰️ SELECTOR DE MAPA BASE (SATÉLITE / CALLES)
+// ==========================================
+const btnSatellite = document.getElementById('btn-satellite');
+let isSatellite = false; // Estado inicial
+
+if (btnSatellite) {
+    btnSatellite.addEventListener('click', (e) => {
+        e.stopPropagation(); // Evita clics accidentales en el mapa
+        isSatellite = !isSatellite; // Cambiamos el estado
+
+        if (isSatellite) {
+            // Apagamos el mapa de calles y prendemos el satélite
+            map.setLayoutProperty('osm-tiles', 'visibility', 'none');
+            map.setLayoutProperty('satellite-tiles', 'visibility', 'visible');
+            
+            // Cambiamos la apariencia del botón
+            btnSatellite.innerHTML = '🗺️ Mapa Calles';
+            btnSatellite.style.backgroundColor = '#10b981'; // Verde para calles
+            btnSatellite.style.borderColor = '#059669';
+        } else {
+            // Apagamos el satélite y regresamos al de calles
+            map.setLayoutProperty('satellite-tiles', 'visibility', 'none');
+            map.setLayoutProperty('osm-tiles', 'visibility', 'visible');
+            
+            // Regresamos el botón a la normalidad
+            btnSatellite.innerHTML = '🛰️ Satélite';
+            btnSatellite.style.backgroundColor = '#3b82f6'; // Azul
+            btnSatellite.style.borderColor = '#2563eb';
+        }
     });
 }

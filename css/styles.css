@@ -811,3 +811,21 @@ select.premium-input {
     cursor: grabbing;
     transform: scale(1.2) translateY(-10px); /* Lo levanta un poquito */
 }
+
+/* =========================================
+   🛠️ AJUSTE DE ESPACIO PARA LA "✖" EN POPUPS
+========================================= */
+.popup-header {
+    /* Le reservamos 35 pixeles a la derecha exclusivamente para el botón */
+    padding-right: 15px !important; 
+    
+    /* Si el nombre de la colonia o sección es MUY largo, le pone "..." en vez de encimarse */
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+/* Opcional: Le damos un poquito más de aire arriba al contenedor del popup para que la tachita respire */
+.maplibregl-popup-content {
+    padding-top: 15px !important; 
+}

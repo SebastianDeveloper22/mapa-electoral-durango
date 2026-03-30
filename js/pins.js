@@ -1,6 +1,8 @@
 // js/pins.js
-import { map } from './map.js'; // 🌟 LA LÍNEA MÁGICA
+import { map } from './map.js';
 import { db } from './firebase-config.js';
+import { showToast } from './utils.js';
+import { ANIOS, ANIO_DEFAULT } from './config.js';
 import { collection, addDoc, getDocs, doc, updateDoc, deleteDoc, getDoc } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
 
 // Variables globales para el control de los pines
@@ -89,6 +91,7 @@ export const cargarPines = async () => {
             // ✨ NUEVO: Le inyectamos los datos al HTML del pin para los filtros
             el.dataset.anio = data.anio;
             el.dataset.tipo = data.tipo;
+            el.dataset.obraId = id;
 
             const popup = new maplibregl.Popup({ offset: 25, closeButton: false }).setHTML(crearHTMLPopup(data, id));
             const marker = new maplibregl.Marker({ element: el }).setLngLat([data.coords.lng, data.coords.lat]).setPopup(popup).addTo(map);
@@ -96,6 +99,7 @@ export const cargarPines = async () => {
         });
     } catch (error) {
         console.error("Error cargando los pines:", error);
+        showToast('Error al cargar las obras. Verifica tu conexión.', 'error');
     }
 };
 
@@ -113,7 +117,7 @@ let chartAnios = null;
 if (btnStats) {
     btnStats.addEventListener('click', () => {
         if (datosObrasGlobales.length === 0) {
-            alert("No hay obras registradas para graficar.");
+            showToast('No hay obras registradas para graficar.', 'warning');
             return;
         }
 
@@ -281,7 +285,7 @@ map.on('contextmenu', (e) => {
     // Limpiar el formulario
     inputNombre.value = '';
     inputTipo.value = '';
-    inputAnio.value = '2024';
+    inputAnio.value = ANIO_DEFAULT;
     modalTitle.innerText = "📍 Nueva Obra P.P.";
 
     // Mostrar el modal
@@ -301,7 +305,7 @@ btnSavePin.addEventListener('click', async () => {
     const fechaActual = new Date().toLocaleDateString('es-MX', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 
     if (!nombre || !tipo) {
-        alert("Por favor, completa todos los campos.");
+        showToast('Por favor, completa todos los campos.', 'warning');
         return;
     }
 
@@ -332,10 +336,12 @@ btnSavePin.addEventListener('click', async () => {
 
         pinModal.style.display = 'none';
         btnSavePin.innerText = "Guardar Cambios";
-        cargarPines(); // Recarga el mapa
+        showToast(editandoId ? 'Obra actualizada correctamente.' : 'Obra registrada correctamente.', 'success');
+        cargarPines();
 
     } catch (error) {
         console.error("Error guardando:", error);
+        showToast('Error al guardar la obra. Verifica tu conexión.', 'error');
         btnSavePin.innerText = "Guardar Cambios";
     }
 });
@@ -343,6 +349,15 @@ btnSavePin.addEventListener('click', async () => {
 // Cerrar Modal al cancelar
 btnCancelPin.addEventListener('click', () => {
     pinModal.style.display = 'none';
+    editandoId = null;
+    coordsTemporales = null;
+});
+
+// Enter en los campos del formulario de obra
+[inputNombre, inputTipo].forEach(input => {
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') btnSavePin.click();
+    });
 });
 
 // ==========================================
@@ -376,11 +391,12 @@ document.addEventListener('click', async (e) => {
 
                 // 4. Ahora sí, la destruimos del mapa visible
                 await deleteDoc(docRef);
-                cargarPines(); // Refrescar mapa
-                console.log("Obra eliminada y enviada a la papelera.");
+                showToast('Obra eliminada y enviada a la papelera.', 'success');
+                cargarPines();
 
             } catch (error) {
                 console.error("Error al borrar:", error);
+                showToast('Error al eliminar la obra. Intenta de nuevo.', 'error');
             }
         }
     }
@@ -405,8 +421,8 @@ document.addEventListener('click', async (e) => {
         editandoId = id;
         
         // Para no perder la ubicación original si solo se edita el texto
-        const marker = marcadores.find(m => m.getPopup()._content.innerHTML.includes(id));
-        if(marker) coordsTemporales = marker.getLngLat();
+        const marker = marcadores.find(m => m.getElement().dataset.obraId === id);
+        if (marker) coordsTemporales = marker.getLngLat();
 
         modalTitle.innerText = "✏️ Editar Obra";
         pinModal.style.display = 'flex';
@@ -429,7 +445,7 @@ const btnExportCsv = document.getElementById('btn-export-csv');
 if (btnExportCsv) {
     btnExportCsv.addEventListener('click', () => {
         if (datosObrasGlobales.length === 0) {
-            alert("No hay obras en el mapa para exportar.");
+            showToast('No hay obras en el mapa para exportar.', 'warning');
             return;
         }
         
@@ -477,11 +493,7 @@ const aplicarFiltrosCombinados = () => {
     const filtroLimpio = normalizarTexto(filtroTipo);
 
     // 2. Qué años están encendidos en el menú lateral
-    const aniosActivos = [];
-    if (document.getElementById('check-pin-2023')?.checked) aniosActivos.push('2023');
-    if (document.getElementById('check-pin-2024')?.checked) aniosActivos.push('2024');
-    if (document.getElementById('check-pin-2025')?.checked) aniosActivos.push('2025');
-    if (document.getElementById('check-pin-2026')?.checked) aniosActivos.push('2026');
+    const aniosActivos = ANIOS.filter(anio => document.getElementById(`check-pin-${anio}`)?.checked);
 
     // 3. Evaluar y mostrar/ocultar cada pin
     marcadores.forEach(m => {

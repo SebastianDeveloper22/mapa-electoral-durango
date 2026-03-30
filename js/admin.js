@@ -1,6 +1,7 @@
 // js/admin.js
 import { db } from './firebase-config.js';
-import { collection, getDocs, addDoc, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+import { showToast } from './utils.js';
+import { collection, getDocs, addDoc, doc, updateDoc, deleteDoc, query, where } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
 
 const btnAdminPanel = document.getElementById('btn-admin-panel');
 const adminModal = document.getElementById('admin-modal');
@@ -54,7 +55,8 @@ const cargarUsuarios = async () => {
         
     } catch (error) {
         console.error("Error cargando usuarios:", error);
-        userListContainer.innerHTML = '<p style="color:red;">Error al cargar datos.</p>';
+        userListContainer.innerHTML = '<p style="color:#f87171; text-align:center;">Error al cargar usuarios. Verifica tu conexión.</p>';
+        showToast('Error al cargar la lista de usuarios.', 'error');
     }
 };
 
@@ -68,10 +70,10 @@ const asignarEventosUsuarios = () => {
             const nuevoRol = e.target.value;
             try {
                 await updateDoc(doc(db, "roles", id), { rol: nuevoRol });
-                console.log("Rol actualizado con éxito");
+                showToast(`Rol actualizado a "${nuevoRol}".`, 'success');
             } catch (error) {
                 console.error("Error al actualizar rol:", error);
-                alert("Hubo un error al actualizar el rol.");
+                showToast('Error al actualizar el rol. Intenta de nuevo.', 'error');
             }
         });
     });
@@ -84,9 +86,11 @@ const asignarEventosUsuarios = () => {
             if(confirm("¿Estás seguro de quitar el acceso a este correo?")) {
                 try {
                     await deleteDoc(doc(db, "roles", id));
-                    cargarUsuarios(); // Recargar la lista visual
+                    showToast('Acceso del usuario eliminado.', 'success');
+                    cargarUsuarios();
                 } catch (error) {
                     console.error("Error al borrar:", error);
+                    showToast('Error al eliminar el usuario. Intenta de nuevo.', 'error');
                 }
             }
         });
@@ -98,26 +102,45 @@ btnAddUser.addEventListener('click', async () => {
     const email = inputNewEmail.value.trim().toLowerCase();
     const rol = selectNewRole.value;
 
-    if (!email) {
-        alert("Por favor, ingresa un correo válido.");
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email || !emailRegex.test(email)) {
+        showToast('Por favor, ingresa un correo electrónico válido.', 'warning');
         return;
     }
 
     try {
         btnAddUser.innerText = "⏳";
+
+        // Verificar si el correo ya tiene acceso
+        const existingSnap = await getDocs(query(collection(db, "roles"), where("email", "==", email)));
+        if (!existingSnap.empty) {
+            showToast(`"${email}" ya tiene acceso asignado.`, 'warning');
+            btnAddUser.innerText = "Agregar";
+            return;
+        }
+
         await addDoc(collection(db, "roles"), {
             email: email,
             rol: rol
         });
-        
-        inputNewEmail.value = ''; // Limpiar campo
-        cargarUsuarios(); // Refrescar lista
+
+        showToast(`Usuario "${email}" agregado como ${rol}.`, 'success');
+        inputNewEmail.value = '';
+        cargarUsuarios();
         btnAddUser.innerText = "Agregar";
     } catch (error) {
         console.error("Error agregando usuario:", error);
+        showToast('Error al agregar el usuario. Intenta de nuevo.', 'error');
         btnAddUser.innerText = "Agregar";
     }
 });
+
+// Enter en el campo de email del panel admin
+if (inputNewEmail) {
+    inputNewEmail.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') btnAddUser.click();
+    });
+}
 
 // Eventos del Modal
 btnAdminPanel.addEventListener('click', () => {

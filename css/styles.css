@@ -53,7 +53,7 @@ body, html {
         #1e293b 75%, 
         #020617 100%
     );
-    animation: rotate Aurora 30s linear infinite;
+    animation: rotateAurora 30s linear infinite;
     opacity: 0.6;
     filter: blur(80px);
     z-index: -1;
@@ -871,4 +871,143 @@ select.premium-input {
     color: #94a3b8;
     font-size: 11px;
     font-weight: bold;
+}
+
+/* =========================================
+   SISTEMA DE NOTIFICACIONES TOAST
+========================================= */
+#toast-container {
+    position: fixed;
+    bottom: 90px;
+    right: 25px;
+    z-index: 99999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    pointer-events: none;
+}
+
+.toast {
+    padding: 13px 18px;
+    border-radius: 14px;
+    color: white;
+    font-size: 14px;
+    font-weight: 600;
+    max-width: 340px;
+    min-width: 200px;
+    opacity: 0;
+    transform: translateX(30px);
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    line-height: 1.4;
+}
+
+.toast.toast-visible {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.toast-success { background: rgba(16, 185, 129, 0.92); }
+.toast-error   { background: rgba(239, 68, 68, 0.92); }
+.toast-warning { background: rgba(245, 158, 11, 0.92); }
+.toast-info    { background: rgba(59, 130, 246, 0.92); }
+
+/* =========================================
+   RESPONSIVE MEJORADO (MÓVIL)
+========================================= */
+@media screen and (max-width: 768px) {
+    /* Ajuste de botones flotantes en esquina derecha */
+    #btn-admin-panel {
+        top: 65px !important;
+        right: 12px !important;
+        font-size: 12px !important;
+        padding: 8px 12px !important;
+    }
+
+    #btn-stats {
+        top: auto !important;
+        bottom: 225px !important;
+        right: 12px !important;
+        font-size: 12px !important;
+        padding: 8px 12px !important;
+    }
+
+    #btn-satellite {
+        bottom: 170px !important;
+        right: 12px !important;
+        font-size: 12px !important;
+        padding: 8px 12px !important;
+    }
+
+    #btn-streetview {
+        bottom: 115px !important;
+        right: 12px !important;
+        font-size: 12px !important;
+        padding: 8px 12px !important;
+    }
+
+    #btn-logout {
+        bottom: 12px !important;
+        right: 12px !important;
+        padding: 8px 16px !important;
+        font-size: 12px !important;
+    }
+
+    /* Filtros rápidos: barra horizontal scrollable */
+    .quick-filters-container {
+        left: 0 !important;
+        right: 0 !important;
+        transform: none !important;
+        bottom: 55px !important;
+        border-radius: 0 !important;
+        overflow-x: auto !important;
+        justify-content: flex-start !important;
+        flex-wrap: nowrap !important;
+        padding: 8px 12px !important;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+    .quick-filters-container::-webkit-scrollbar { display: none; }
+
+    .filter-chip {
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    /* Modales: más alto para no ocupar toda la pantalla */
+    .modal-content {
+        width: 96% !important;
+        max-width: 96vw !important;
+        padding: 22px 18px !important;
+        border-radius: 20px !important;
+        max-height: 88vh;
+        overflow-y: auto;
+    }
+
+    .admin-content {
+        max-width: 96vw !important;
+    }
+
+    /* Formulario agregar usuario: stack vertical */
+    .admin-add-user {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Toast en mobile: ancho completo desde abajo */
+    #toast-container {
+        bottom: 65px;
+        left: 12px;
+        right: 12px;
+    }
+
+    .toast {
+        max-width: 100%;
+        transform: translateY(20px);
+    }
+
+    .toast.toast-visible {
+        transform: translateY(0);
+    }
 }

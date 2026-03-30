@@ -1,8 +1,19 @@
 // js/auth.js
 import { auth, db } from './firebase-config.js';
 import { verificarAccesoAdmin } from './admin.js';
+import { showToast } from './utils.js';
 import { signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
 import { collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+
+const mensajesError = {
+    'auth/invalid-email': 'El correo electrónico no es válido.',
+    'auth/user-not-found': 'No existe una cuenta con ese correo.',
+    'auth/wrong-password': 'Contraseña incorrecta. Intenta de nuevo.',
+    'auth/invalid-credential': 'Correo o contraseña incorrectos.',
+    'auth/too-many-requests': 'Demasiados intentos fallidos. Espera unos minutos.',
+    'auth/network-request-failed': 'Sin conexión a internet. Verifica tu red.',
+    'auth/user-disabled': 'Esta cuenta ha sido deshabilitada. Contacta al administrador.',
+};
 
 const loginScreen = document.getElementById('login-screen');
 const btnLogin = document.getElementById('btn-login');
@@ -42,20 +53,33 @@ async function fetchAndSetUserRole(email) {
         
     } catch (error) {
         console.error("Error al obtener el rol del usuario:", error);
-        localStorage.setItem('userRole', 'lector'); 
+        localStorage.setItem('userRole', 'lector');
+        showToast('Sin conexión. Acceso limitado a modo lectura.', 'warning');
     }
 }
 
 // ==========================================
 // LÓGICA PARA INICIAR SESIÓN
 // ==========================================
+// Enter en los campos de login
+if (inputEmail) {
+    inputEmail.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') inputPassword?.focus();
+    });
+}
+if (inputPassword) {
+    inputPassword.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') btnLogin?.click();
+    });
+}
+
 if (btnLogin) {
     btnLogin.addEventListener('click', () => {
         const email = inputEmail.value.trim();
         const pass = inputPassword.value;
 
         if (!email || !pass) {
-            alert("⚠️ Por favor, ingresa tu correo y contraseña.");
+            showToast('Por favor, ingresa tu correo y contraseña.', 'warning');
             return;
         }
 
@@ -66,10 +90,10 @@ if (btnLogin) {
         signInWithEmailAndPassword(auth, email, pass)
             .then(() => {
                 console.log("Sesión iniciada correctamente en Auth");
-                // No ocultamos la pantalla aquí, dejamos que el observador lo haga
             })
             .catch((error) => {
-                alert("❌ Error: " + error.message);
+                const mensaje = mensajesError[error.code] || 'Error al iniciar sesión. Intenta de nuevo.';
+                showToast(mensaje, 'error');
                 btnLogin.innerText = "Iniciar Sesión";
                 btnLogin.disabled = false;
             });

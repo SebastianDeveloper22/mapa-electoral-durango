@@ -166,23 +166,28 @@ map.on('load', () => {
 
     const cursorMiraPremium = `url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><circle cx="16" cy="16" r="14" stroke="black" stroke-width="2" fill="none" opacity="0.5"/><circle cx="16" cy="16" r="14" stroke="white" stroke-width="2" fill="none"/><line x1="16" y1="2" x2="16" y2="30" stroke="black" stroke-width="2"/><line x1="16" y1="2" x2="16" y2="30" stroke="white" stroke-width="1"/><line x1="2" y1="16" x2="30" y2="16" stroke="black" stroke-width="2"/><line x1="2" y1="16" x2="30" y2="16" stroke="white" stroke-width="1"/><circle cx="16" cy="16" r="1" fill="white" stroke="black" stroke-width="1"/></svg>') 16 16, crosshair`;
 
+    let mousemoveFrame = null;
     map.on('mousemove', (e) => {
+        if (mousemoveFrame) return;
+        mousemoveFrame = requestAnimationFrame(() => {
+            mousemoveFrame = null;
 
-        if (window.modoStreetViewActivo){
-            map.getCanvas().style.cursor = cursorMiraPremium;
-            return;
-        }
+            if (window.modoStreetViewActivo) {
+                map.getCanvas().style.cursor = cursorMiraPremium;
+                return;
+            }
 
-        const activeClickableIds = layerNames
-            .filter(n => document.getElementById(`check-${n}`)?.checked)
-            .map(n => `layer-${n}-fill`);
+            const activeClickableIds = layerNames
+                .filter(n => document.getElementById(`check-${n}`)?.checked)
+                .map(n => `layer-${n}-fill`);
 
-        if(activeClickableIds.length === 0) {
-            map.getCanvas().style.cursor = '';
-            return;
-        }
+            if (activeClickableIds.length === 0) {
+                map.getCanvas().style.cursor = '';
+                return;
+            }
 
-        map.getCanvas().style.cursor = map.queryRenderedFeatures(e.point, { layers: activeClickableIds }).length ? 'pointer' : '';
+            map.getCanvas().style.cursor = map.queryRenderedFeatures(e.point, { layers: activeClickableIds }).length ? 'pointer' : '';
+        });
     });
 
     // --- BUSCADOR INTELIGENTE Y AUTOCOMPLETADO ---
@@ -205,6 +210,8 @@ map.on('load', () => {
 
     if (inputSearch) inputSearch.addEventListener('focus', asegurarCapaActiva);
     if (typeSearch) typeSearch.addEventListener('change', asegurarCapaActiva);
+
+    const escaparRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
     // AUTOCOMPLETADO
     if (inputSearch) {
@@ -247,7 +254,7 @@ map.on('load', () => {
                 autocompleteList.style.display = 'flex';
                 opciones.forEach(opcion => {
                     let item = document.createElement('div');
-                    let regex = new RegExp(`(${val})`, "gi");
+                    let regex = new RegExp(`(${escaparRegex(val)})`, "gi");
                     item.innerHTML = opcion.replace(regex, "<strong>$1</strong>");
                     
                     item.addEventListener('click', function() {
@@ -325,7 +332,7 @@ map.on('load', () => {
     };
 
     if (btnSearch) btnSearch.addEventListener('click', ejecutarBusqueda);
-    if (inputSearch) inputSearch.addEventListener('keypress', (e) => {
+    if (inputSearch) inputSearch.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
             if (autocompleteList) autocompleteList.style.display = 'none';
             ejecutarBusqueda();

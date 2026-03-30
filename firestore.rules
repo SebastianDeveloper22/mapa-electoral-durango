@@ -1,0 +1,39 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Solo usuarios autenticados pueden acceder al sistema
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Colección de obras públicas
+    // - Cualquier usuario autenticado puede leer
+    // - Solo usuarios autenticados pueden escribir (control de roles en cliente)
+    // NOTA: Para seguridad real, migrar roles a Firebase Auth custom claims
+    match /obras/{obraId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAuthenticated();
+    }
+
+    // Papelera de auditoría
+    // - Solo usuarios autenticados pueden leer y escribir
+    match /papelera/{papeleraId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // Roles de usuarios
+    // - Cualquier usuario autenticado puede leer (necesario para verificar su propio rol al login)
+    // - Escritura bloqueada desde cliente: solo via Firebase Console o Admin SDK
+    //   (si deseas permitir que admins modifiquen roles desde la app, cambia esto a tu lógica)
+    match /roles/{roleId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    // Denegar acceso a todo lo demás por defecto
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

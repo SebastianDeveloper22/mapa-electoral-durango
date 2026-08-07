@@ -1,0 +1,100 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helpers ──────────────────────────────────────────────────────────────
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Lee el rol del usuario desde la colección 'roles'
+    function getUserRole() {
+      return get(/databases/$(database)/documents/roles/$(request.auth.uid)).data.rol;
+    }
+
+    // Verifica si el usuario tiene alguno de los roles indicados
+    function hasRole(roles) {
+      return isAuthenticated() && (
+        exists(/databases/$(database)/documents/roles/$(request.auth.uid)) == false ||
+        get(/databases/$(database)/documents/roles/$(request.auth.uid)).data.rol in roles
+      );
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/roles/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/roles/$(request.auth.uid)).data.rol == 'admin';
+    }
+
+    function isEditorOrAdmin() {
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/roles/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/roles/$(request.auth.uid)).data.rol in ['editor', 'admin'];
+    }
+
+    // ── Módulo PP: Obras ──────────────────────────────────────────────────────
+
+    match /obras/{obraId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isEditorOrAdmin();
+      allow delete: if isEditorOrAdmin();
+    }
+
+    // ── Módulo PP: Papelera de auditoría ──────────────────────────────────────
+
+    match /papelera/{papeleraId} {
+      allow read: if isAuthenticated();
+      allow create: if isEditorOrAdmin();
+      allow update, delete: if isAdmin();
+    }
+
+    // ── Control de acceso: Roles ──────────────────────────────────────────────
+    // Los documentos en 'roles' se identifican por el UID del usuario
+
+    match /roles/{roleId} {
+      allow read: if isAuthenticated();
+      allow write, delete: if isAuthenticated();
+    }
+
+    // ── Módulo Electoral: Elecciones ──────────────────────────────────────────
+
+    match /elecciones/{eleccionId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAuthenticated();
+
+      // Subcolecciones anidadas (rutas alternativas)
+      match /casillas/{casillaId} {
+        allow read: if isAuthenticated();
+        allow write, delete: if isAuthenticated();
+      }
+
+      match /resultados/{resultadoId} {
+        allow read: if isAuthenticated();
+        allow write, delete: if isAuthenticated();
+      }
+    }
+
+    // ── Módulo Electoral: Casillas (colección top-level) ──────────────────────
+
+    match /casillas/{casillaId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated();
+      allow delete: if isAuthenticated();
+    }
+
+    // ── Módulo Electoral: Resultados (colección top-level) ────────────────────
+
+    match /resultados/{resultadoId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated();
+      allow delete: if isAuthenticated();
+    }
+
+    // ── Denegar todo lo demás ─────────────────────────────────────────────────
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

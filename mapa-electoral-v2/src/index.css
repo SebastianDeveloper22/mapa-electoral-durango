@@ -1,0 +1,170 @@
+@import "tailwindcss";
+
+/* Variables del tema oscuro */
+:root {
+    --bg: #0f172a;
+    --surface: #1e293b;
+    --surface-2: #334155;
+    --border: #334155;
+    --primary: #3b82f6;
+    --primary-hover: #2563eb;
+    --text: #f1f5f9;
+    --text-muted: #94a3b8;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+}
+
+body,
+html {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    font-family: "Segoe UI", system-ui, sans-serif;
+    background-color: var(--bg);
+    color: var(--text);
+}
+
+#root {
+    width: 100%;
+    height: 100%;
+}
+
+/* ── MapLibre popup ── */
+.maplibregl-popup-content {
+    background: #1e293b !important;
+    border: 1px solid #334155 !important;
+    border-radius: 12px !important;
+    padding: 0 !important;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5) !important;
+    color: #f1f5f9;
+    min-width: 220px;
+}
+.maplibregl-popup-tip {
+    border-top-color: #1e293b !important;
+    border-bottom-color: #1e293b !important;
+}
+.maplibregl-popup-close-button {
+    color: #94a3b8 !important;
+    font-size: 18px !important;
+    padding: 6px 10px !important;
+    border-radius: 0 12px 0 0 !important;
+    background: transparent !important;
+}
+.maplibregl-popup-close-button:hover {
+    color: #fff !important;
+    background: #334155 !important;
+}
+
+.sig-popup-header {
+    padding: 10px 14px 8px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #3b82f6;
+    border-bottom: 1px solid #334155;
+}
+.sig-popup-body {
+    padding: 8px 14px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.sig-popup-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 12px;
+}
+.sig-popup-key {
+    color: #94a3b8;
+    flex-shrink: 0;
+}
+.sig-popup-val {
+    color: #f1f5f9;
+    font-weight: 500;
+    text-align: right;
+    word-break: break-word;
+}
+
+/* ── Popups de pines PP ── */
+.pin-popup {
+    font-family: "Segoe UI", system-ui, sans-serif;
+}
+.pin-popup-header {
+    padding: 10px 14px 8px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #3b82f6;
+    border-bottom: 1px solid #334155;
+}
+.pin-popup-body {
+    padding: 8px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.pin-popup-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 12px;
+}
+.pin-key {
+    color: #94a3b8;
+    flex-shrink: 0;
+}
+.pin-val {
+    color: #f1f5f9;
+    font-weight: 500;
+    text-align: right;
+    word-break: break-word;
+}
+.pin-popup-actions {
+    display: flex;
+    gap: 6px;
+    padding: 8px 14px;
+    flex-wrap: wrap;
+}
+.pin-btn {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 5px 10px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    transition: opacity 0.15s;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+}
+.pin-btn:hover {
+    opacity: 0.85;
+}
+.pin-route {
+    background: #1d4ed8;
+    color: #fff;
+}
+.pin-edit {
+    background: #334155;
+    color: #e2e8f0;
+}
+.pin-delete {
+    background: #7f1d1d;
+    color: #fca5a5;
+}
+.pin-traceability {
+    padding: 6px 14px 10px;
+    font-size: 10px;
+    color: #64748b;
+    border-top: 1px solid #1e293b;
+    line-height: 1.5;
+}
+.pin-traceability span {
+    color: #94a3b8;
+    font-weight: 600;
+}

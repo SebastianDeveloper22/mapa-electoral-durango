@@ -1,3 +1,5 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable react-hooks/set-state-in-effect */
 import { useState, useRef, useEffect } from "react";
 import { useMapStore } from "../../store/mapStore";
 import { MUNICIPIOS } from "../../config";

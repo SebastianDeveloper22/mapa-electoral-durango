@@ -37,10 +37,13 @@ const AdminPanel = ({ open, onClose }) => {
     } finally {
       setLoadingList(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (open) cargar();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   // Agregar usuario

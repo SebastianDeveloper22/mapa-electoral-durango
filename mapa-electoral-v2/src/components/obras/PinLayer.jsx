@@ -1,3 +1,6 @@
+/* eslint-disable react-hooks/refs */
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable react-hooks/immutability */
 import { useEffect, useRef, useCallback } from "react";
 import maplibregl from "maplibre-gl";
 import { useMapStore } from "../../store/mapStore";

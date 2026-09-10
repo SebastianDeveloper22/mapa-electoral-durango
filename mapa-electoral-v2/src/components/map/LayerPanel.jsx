@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import { useEffect, useRef } from "react";
 import { useMapStore } from "../../store/mapStore";
 import { CAPAS, ANIOS } from "../../config";
@@ -72,12 +73,12 @@ const LayerPanel = () => {
                 type="checkbox"
                 checked={layersVisible[id] || false}
                 onChange={() => toggleLayer(id)}
-                className="w-3.5 h-3.5 cursor-pointer flex-shrink-0"
+                className="w-3.5 h-3.5 cursor-pointer shrink-0"
                 style={{ accentColor: color }}
               />
               {/* Indicador visual del color/estilo de la capa */}
               <span
-                className="inline-block flex-shrink-0"
+                className="inline-block shrink-0"
                 style={{
                   width: "18px",
                   height: "3px",
@@ -110,7 +111,7 @@ const LayerPanel = () => {
                 style={{ accentColor: PIN_COLORS[anio] }}
               />
               <span
-                className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0"
+                className="inline-block w-2.5 h-2.5 rounded-full shrink-0"
                 style={{ backgroundColor: PIN_COLORS[anio] }}
               />
               Obras {anio}

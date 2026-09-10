@@ -2,6 +2,28 @@
 export const ANIOS = ["2023", "2024", "2025", "2026"];
 export const ANIO_DEFAULT = "2024";
 
+// Tipos de marcadores (capas)
+export const TIPOS_MARCADOR = [
+  { value: "pp", label: "Presupuesto Participativo" },
+  { value: "rural", label: "Rural" },
+  { value: "top100", label: "Top 100 Urbano" },
+  { value: "general", label: "General" },
+];
+
+// Distritos Locales de Durango capital
+export const DISTRITOS_LOCALES = ["DL 1", "DL 2", "DL 3", "DL 4", "DL 5", "DL 6"];
+
+// Secciones electorales (1–500) para combobox con autocomplete
+export const SECCIONES = Array.from({ length: 500 }, (_, i) => String(i + 1));
+
+// Colores por tipo de marcador
+export const COLORES_MARCADOR = {
+  pp: null,        // PP usa colores por año (definidos en PinLayer)
+  rural: "#22c55e",
+  top100: "#f97316",
+  general: "#94a3b8",
+};
+
 // Roles del sistema
 export const ROLES = {
   LECTOR: "lector",
@@ -94,9 +116,8 @@ export const CAPAS = [
     // Distrito local: púrpura, punteado corto, ligeramente más delgado
     id: "distrito-local",
     sourceLayer: "DISTRITO_LOCAL",
-    color: "#a855f7",
-    width: 2.3,
-    dash: [3, 2],
+    color: "rgba(139, 92, 246, 0.9)",
+    width: 2.8,
     minZoom: 10,
     labelField: "DISTRITO_L",
     labelColor: "#d8b4fe",
@@ -121,7 +142,7 @@ export const CAPAS = [
     id: "seccion",
     sourceLayer: "SECCION",
     color: "#f472b6",
-    width: 1.6,
+    width: 2,
     dash: null,
     minZoom: 11,
     labelField: "SECCION",
@@ -132,8 +153,8 @@ export const CAPAS = [
   {
     id: "colonia",
     sourceLayer: "COLONIA",
-    color: "#94a3b8",
-    width: 0.65,
+    color: "#292825",
+    width: 1.6,
     dash: null,
     minZoom: 12,
     labelField: "NOMBRE",
@@ -144,8 +165,8 @@ export const CAPAS = [
   {
     id: "manzana",
     sourceLayer: "MANZANA",
-    color: "#475569",
-    width: 0.3,
+    color: "#6F9154",
+    width: 0.8,
     dash: null,
     minZoom: 14,
     labelField: null,

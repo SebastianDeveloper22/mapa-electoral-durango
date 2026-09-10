@@ -1,12 +1,15 @@
 import { create } from 'zustand';
-import { ANIOS } from '../config';
+import { ANIOS, DISTRITOS_LOCALES } from '../config';
+
+// Estado inicial de filtros DL para rural y top100
+const dlInicial = DISTRITOS_LOCALES.reduce((acc, dl) => ({ ...acc, [dl]: true }), {});
 
 export const useMapStore = create((set) => ({
   // Instancia del mapa
   mapInstance: null,
   setMapInstance: (map) => set({ mapInstance: map }),
 
-  // Capas activas
+  // Capas cartográficas activas
   layersVisible: {
     municipio: false,
     'distrito-fed': false,
@@ -38,7 +41,37 @@ export const useMapStore = create((set) => ({
       },
     })),
 
-  // Filtro rápido por tipo de obra
+  // Visibilidad de capas de marcadores adicionales
+  marcadoresVisibles: {
+    rural: true,
+    top100: true,
+    general: true,
+  },
+  toggleMarcador: (capa) =>
+    set((state) => ({
+      marcadoresVisibles: {
+        ...state.marcadoresVisibles,
+        [capa]: !state.marcadoresVisibles[capa],
+      },
+    })),
+
+  // Filtros por Distrito Local (solo para rural y top100)
+  filtrosDL: {
+    rural: { ...dlInicial },
+    top100: { ...dlInicial },
+  },
+  toggleDL: (capa, dl) =>
+    set((state) => ({
+      filtrosDL: {
+        ...state.filtrosDL,
+        [capa]: {
+          ...state.filtrosDL[capa],
+          [dl]: !state.filtrosDL[capa][dl],
+        },
+      },
+    })),
+
+  // Filtro rápido por tipo de obra (PP)
   filtroTipo: 'all',
   setFiltroTipo: (tipo) => set({ filtroTipo: tipo }),
 

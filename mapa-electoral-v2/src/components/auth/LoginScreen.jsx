@@ -39,13 +39,13 @@ const LoginScreen = () => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0f172a]"
-         style={{ background: 'radial-gradient(ellipse at 60% 40%, #1e3a5f 0%, #0f172a 70%)' }}>
+        style={{ background: 'radial-gradient(ellipse at 60% 40%, #1e3a5f 0%, #0f172a 70%)' }}>
       <div className="w-full max-w-sm mx-4 bg-[#1e293b] border border-[#334155] rounded-2xl p-8 shadow-2xl">
         {/* Logo */}
         <div className="text-5xl text-center mb-4">🛰️</div>
         <h2 className="text-xl font-semibold text-center text-white mb-1">Bienvenido</h2>
         <p className="text-sm text-center text-slate-400 mb-6">
-          Introduce tus credenciales para acceder al sistema cartográfico de Durango.
+          Introduce tus credenciales para acceder al sistema.
         </p>
 
         {/* Email */}

@@ -8,19 +8,6 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Lee el rol del usuario desde la colección 'roles'
-    function getUserRole() {
-      return get(/databases/$(database)/documents/roles/$(request.auth.uid)).data.rol;
-    }
-
-    // Verifica si el usuario tiene alguno de los roles indicados
-    function hasRole(roles) {
-      return isAuthenticated() && (
-        exists(/databases/$(database)/documents/roles/$(request.auth.uid)) == false ||
-        get(/databases/$(database)/documents/roles/$(request.auth.uid)).data.rol in roles
-      );
-    }
-
     function isAdmin() {
       return isAuthenticated() &&
         exists(/databases/$(database)/documents/roles/$(request.auth.uid)) &&
@@ -33,9 +20,41 @@ service cloud.firestore {
         get(/databases/$(database)/documents/roles/$(request.auth.uid)).data.rol in ['editor', 'admin'];
     }
 
+    // ── Control de acceso: Roles ──────────────────────────────────────────────
+    // Solo admin puede crear/editar/borrar roles
+
+    match /roles/{roleId} {
+      allow read: if isAuthenticated();
+      allow write, delete: if isAdmin();
+    }
+
     // ── Módulo PP: Obras ──────────────────────────────────────────────────────
 
     match /obras/{obraId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isEditorOrAdmin();
+      allow delete: if isEditorOrAdmin();
+    }
+
+    // ── Módulo PP: Marcadores Rural ───────────────────────────────────────────
+
+    match /marcadores_rural/{docId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isEditorOrAdmin();
+      allow delete: if isEditorOrAdmin();
+    }
+
+    // ── Módulo PP: Marcadores Top 100 Urbano ─────────────────────────────────
+
+    match /marcadores_top100/{docId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isEditorOrAdmin();
+      allow delete: if isEditorOrAdmin();
+    }
+
+    // ── Módulo PP: Marcadores Generales ──────────────────────────────────────
+
+    match /marcadores_generales/{docId} {
       allow read: if isAuthenticated();
       allow create, update: if isEditorOrAdmin();
       allow delete: if isEditorOrAdmin();
@@ -49,29 +68,20 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
-    // ── Control de acceso: Roles ──────────────────────────────────────────────
-    // Los documentos en 'roles' se identifican por el UID del usuario
-
-    match /roles/{roleId} {
-      allow read: if isAuthenticated();
-      allow write, delete: if isAuthenticated();
-    }
-
     // ── Módulo Electoral: Elecciones ──────────────────────────────────────────
 
     match /elecciones/{eleccionId} {
       allow read: if isAuthenticated();
-      allow create, update, delete: if isAuthenticated();
+      allow create, update, delete: if isEditorOrAdmin();
 
-      // Subcolecciones anidadas (rutas alternativas)
       match /casillas/{casillaId} {
         allow read: if isAuthenticated();
-        allow write, delete: if isAuthenticated();
+        allow write, delete: if isEditorOrAdmin();
       }
 
       match /resultados/{resultadoId} {
         allow read: if isAuthenticated();
-        allow write, delete: if isAuthenticated();
+        allow write, delete: if isEditorOrAdmin();
       }
     }
 
@@ -79,16 +89,16 @@ service cloud.firestore {
 
     match /casillas/{casillaId} {
       allow read: if isAuthenticated();
-      allow create, update: if isAuthenticated();
-      allow delete: if isAuthenticated();
+      allow create, update: if isEditorOrAdmin();
+      allow delete: if isEditorOrAdmin();
     }
 
     // ── Módulo Electoral: Resultados (colección top-level) ────────────────────
 
     match /resultados/{resultadoId} {
       allow read: if isAuthenticated();
-      allow create, update: if isAuthenticated();
-      allow delete: if isAuthenticated();
+      allow create, update: if isEditorOrAdmin();
+      allow delete: if isEditorOrAdmin();
     }
 
     // ── Denegar todo lo demás ─────────────────────────────────────────────────

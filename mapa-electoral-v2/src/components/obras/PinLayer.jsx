@@ -1,25 +1,26 @@
 /* eslint-disable react-hooks/refs */
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable react-hooks/immutability */
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef } from "react";
 import maplibregl from "maplibre-gl";
 import { useMapStore } from "../../store/mapStore";
 import { useObrasStore } from "../../store/obrasStore";
 import { useAuthStore } from "../../store/authStore";
 import { getObras, deleteObra } from "../../services/obrasService";
+import { getMarcadoresTodos, deleteMarcador } from "../../services/marcadoresService";
 import { useToast } from "../ui/Toast";
-import { ROLES } from "../../config";
+import { ROLES, COLORES_MARCADOR } from "../../config";
 
-// Colores por año
-const PIN_COLORS = {
-  2023: "#f59e0b", // Ámbar
-  2024: "#3b82f6", // Azul
-  2025: "#10b981", // Esmeralda
-  2026: "#a855f7", // Púrpura
+// Colores de PP por año
+const PIN_COLORS_ANIO = {
+  2023: "#f59e0b",
+  2024: "#3b82f6",
+  2025: "#10b981",
+  2026: "#a855f7",
 };
 const PIN_DEFAULT = "#94a3b8";
 
-// SVG de pin coloreado — el color se inyecta dinámicamente
+// SVG de pin coloreado
 const pinSVG = (color) => `
   <svg xmlns="http://www.w3.org/2000/svg" width="28" height="36" viewBox="0 0 28 36">
     <ellipse cx="14" cy="34" rx="5" ry="2" fill="rgba(0,0,0,0.25)"/>
@@ -31,14 +32,9 @@ const pinSVG = (color) => `
   </svg>
 `;
 
-/**
- * Pin de color SVG clásico (sin imagen personalizada).
- */
-const crearElementoPin = (anio) => {
-  const color = PIN_COLORS[anio] || PIN_DEFAULT;
+const crearElementoPin = (color) => {
   const el = document.createElement("div");
-  el.style.cssText =
-    "width:28px; height:36px; cursor:pointer; user-select:none;";
+  el.style.cssText = "width:28px; height:36px; cursor:pointer; user-select:none;";
   const inner = document.createElement("div");
   inner.style.cssText = `
     width: 28px; height: 36px;
@@ -48,30 +44,15 @@ const crearElementoPin = (anio) => {
   `;
   inner.innerHTML = pinSVG(color);
   el.appendChild(inner);
-  el.addEventListener("mouseenter", () => {
-    inner.style.transform = "scale(1.3)";
-  });
-  el.addEventListener("mouseleave", () => {
-    inner.style.transform = "scale(1)";
-  });
+  el.addEventListener("mouseenter", () => { inner.style.transform = "scale(1.3)"; });
+  el.addEventListener("mouseleave", () => { inner.style.transform = "scale(1)"; });
   return el;
 };
 
-// Dimensiones base del pin de imagen (a zoom 14)
-const PIN_IMG_BASE = {
-  size: 88, // lado del cuadro en px
-  triH: 13, // altura del triángulo
-  pad: 6, // padding interior del logo
-  radius: 12, // border-radius
-  border: 2.5, // grosor del borde
-};
-
+// Dimensiones base del pin de imagen
+const PIN_IMG_BASE = { size: 88, triH: 13, pad: 6, radius: 12, border: 2.5 };
 const BORDER_COLOR = "#2d3a4a";
 
-/**
- * Aplica las dimensiones calculadas a un elemento pin de imagen.
- * Se llama al crearlo y en cada evento zoom del mapa.
- */
 const aplicarDimensionesPin = (el, scale) => {
   const s = Math.max(0.3, Math.min(1.25, scale));
   const sz = Math.round(PIN_IMG_BASE.size * s);
@@ -79,12 +60,8 @@ const aplicarDimensionesPin = (el, scale) => {
   const pd = Math.max(3, Math.round(PIN_IMG_BASE.pad * s));
   const rr = Math.max(5, Math.round(PIN_IMG_BASE.radius * s));
   const bw = Math.max(1.5, PIN_IMG_BASE.border * s).toFixed(1);
-
-  // Wrapper
   el.style.width = `${sz}px`;
   el.style.height = `${sz + th}px`;
-
-  // Card
   const card = el.querySelector(".obra-pin-card");
   if (card) {
     card.style.width = `${sz}px`;
@@ -93,8 +70,6 @@ const aplicarDimensionesPin = (el, scale) => {
     card.style.borderRadius = `${rr}px`;
     card.style.borderWidth = `${bw}px`;
   }
-
-  // Triángulo
   const tri = el.querySelector(".obra-pin-tri");
   if (tri) {
     tri.style.borderLeftWidth = `${th - 2}px`;
@@ -103,55 +78,38 @@ const aplicarDimensionesPin = (el, scale) => {
   }
 };
 
-/**
- * Crea el elemento DOM del pin de imagen.
- * Las dimensiones reales cambian con el zoom — anchor:'bottom' hace que
- * el triángulo siempre apunte al punto correcto sin cálculos extra.
- */
 const crearElementoPinImagen = (imageUrl) => {
   const { size: SZ, triH: TH } = PIN_IMG_BASE;
-
   const el = document.createElement("div");
   el.style.cssText = [
-    `width: ${SZ}px`,
-    `height: ${SZ + TH}px`,
-    "cursor: pointer",
-    "user-select: none",
-    "display: flex",
-    "flex-direction: column",
-    "align-items: center",
+    `width: ${SZ}px`, `height: ${SZ + TH}px`,
+    "cursor: pointer", "user-select: none",
+    "display: flex", "flex-direction: column", "align-items: center",
   ].join("; ");
 
   const card = document.createElement("div");
   card.className = "obra-pin-card";
   card.style.cssText = [
-    `width: ${SZ}px`,
-    `height: ${SZ}px`,
-    "background: #ffffff",
+    `width: ${SZ}px`, `height: ${SZ}px`, "background: #ffffff",
     `border: ${PIN_IMG_BASE.border}px solid ${BORDER_COLOR}`,
     `border-radius: ${PIN_IMG_BASE.radius}px`,
     "box-shadow: 0 4px 14px rgba(0,0,0,0.45), 0 1px 3px rgba(0,0,0,0.3)",
-    "overflow: hidden",
-    `padding: ${PIN_IMG_BASE.pad}px`,
-    "box-sizing: border-box",
-    "display: flex",
-    "align-items: center",
-    "justify-content: center",
-    "transition: transform 0.12s ease", // solo para hover
+    "overflow: hidden", `padding: ${PIN_IMG_BASE.pad}px`,
+    "box-sizing: border-box", "display: flex",
+    "align-items: center", "justify-content: center",
+    "transition: transform 0.12s ease",
   ].join("; ");
 
   const imgEl = document.createElement("img");
   imgEl.src = imageUrl;
-  imgEl.style.cssText =
-    "width:100%; height:100%; object-fit:contain; display:block;";
+  imgEl.style.cssText = "width:100%; height:100%; object-fit:contain; display:block;";
   imgEl.draggable = false;
   card.appendChild(imgEl);
 
   const tri = document.createElement("div");
   tri.className = "obra-pin-tri";
   tri.style.cssText = [
-    "width: 0",
-    "height: 0",
+    "width: 0", "height: 0",
     `border-left: ${TH - 2}px solid transparent`,
     `border-right: ${TH - 2}px solid transparent`,
     `border-top: ${TH}px solid ${BORDER_COLOR}`,
@@ -162,29 +120,22 @@ const crearElementoPinImagen = (imageUrl) => {
   el.appendChild(card);
   el.appendChild(tri);
 
-  // Hover: solo escala el contenido visual, no afecta al anclaje del marcador
-  el.addEventListener("mouseenter", () => {
-    card.style.transform = "scale(1.1)";
-  });
-  el.addEventListener("mouseleave", () => {
-    card.style.transform = "scale(1)";
-  });
+  el.addEventListener("mouseenter", () => { card.style.transform = "scale(1.1)"; });
+  el.addEventListener("mouseleave", () => { card.style.transform = "scale(1)"; });
 
   return el;
 };
 
-const crearHTMLPopup = (obra, role) => {
+// ── Popups ──────────────────────────────────────────────────────────────────
+
+const crearHTMLPopupPP = (obra, role) => {
   const { id, nombre, tipo, anio, coords, creadoPor, fechaCreacion } = obra;
   const googleUrl = `https://www.google.com/maps/dir/?api=1&destination=${coords.lat},${coords.lng}`;
   const canEdit = role === ROLES.ADMIN || role === ROLES.EDITOR;
-
   const botonesEdicion = canEdit
-    ? `
-    <button class="pin-btn pin-edit" data-id="${id}">✏️ Editar</button>
-    <button class="pin-btn pin-delete" data-id="${id}">🗑️ Borrar</button>
-  `
+    ? `<button class="pin-btn pin-edit" data-id="${id}" data-capa="pp">✏️ Editar</button>
+       <button class="pin-btn pin-delete" data-id="${id}" data-capa="pp">🗑️ Borrar</button>`
     : "";
-
   return `
     <div class="pin-popup">
       <div class="pin-popup-header">Obra P.P. ${anio}</div>
@@ -201,28 +152,71 @@ const crearHTMLPopup = (obra, role) => {
   `;
 };
 
+const CAPA_LABELS = {
+  rural: "Rural",
+  top100: "Top 100 Urbano",
+  general: "General",
+};
+
+const crearHTMLPopupMarcador = (m, role) => {
+  const { id, capa, nombre, tipo, distritoLocal, seccion, detalles, coords, creadoPor, fechaCreacion } = m;
+  const googleUrl = `https://www.google.com/maps/dir/?api=1&destination=${coords.lat},${coords.lng}`;
+  const canEdit = role === ROLES.ADMIN || role === ROLES.EDITOR;
+  const botonesEdicion = canEdit
+    ? `<button class="pin-btn pin-edit" data-id="${id}" data-capa="${capa}">✏️ Editar</button>
+       <button class="pin-btn pin-delete" data-id="${id}" data-capa="${capa}">🗑️ Borrar</button>`
+    : "";
+  const dlRow = distritoLocal
+    ? `<div class="pin-popup-row"><span class="pin-key">Distrito</span><span class="pin-val">${distritoLocal}</span></div>`
+    : "";
+  const secRow = seccion
+    ? `<div class="pin-popup-row"><span class="pin-key">Sección</span><span class="pin-val">${seccion}</span></div>`
+    : "";
+  const detRow = detalles
+    ? `<div class="pin-popup-row"><span class="pin-key">Detalles</span><span class="pin-val">${detalles}</span></div>`
+    : "";
+  return `
+    <div class="pin-popup">
+      <div class="pin-popup-header">${CAPA_LABELS[capa] ?? capa}</div>
+      <div class="pin-popup-body">
+        <div class="pin-popup-row"><span class="pin-key">Nombre</span><span class="pin-val">${nombre}</span></div>
+        <div class="pin-popup-row"><span class="pin-key">Tipo</span><span class="pin-val">${tipo}</span></div>
+        ${dlRow}${secRow}${detRow}
+      </div>
+      <div class="pin-popup-actions">
+        <a href="${googleUrl}" target="_blank" class="pin-btn pin-route">🗺️ Ruta</a>
+        ${botonesEdicion}
+      </div>
+      <div class="pin-traceability">Registrado por <span>${creadoPor || "Sistema"}</span><br>${fechaCreacion || ""}</div>
+    </div>
+  `;
+};
+
+// ── Componente ───────────────────────────────────────────────────────────────
+
 const PinLayer = ({ reloadTrigger, onReload }) => {
-  const { mapInstance, aniosVisibles, filtroTipo } = useMapStore();
+  const {
+    mapInstance,
+    aniosVisibles,
+    filtroTipo,
+    marcadoresVisibles,
+    filtrosDL,
+  } = useMapStore();
   const { openModalEditar, setObras } = useObrasStore();
   const { role, user } = useAuthStore();
   const toast = useToast();
-  const marcadoresRef = useRef([]);
-  const obrasRef = useRef([]);
-  const imagePinEls = useRef([]); // elementos DOM de pines de imagen
+  const marcadoresRef = useRef([]);   // { marker, capa, anio, dl }
+  const todosRef = useRef([]);        // todos los objetos cargados
+  const imagePinEls = useRef([]);
 
-  // ── Escala dinámica: cambia dimensiones REALES del elemento ─────────────────
-  // Interpolación lineal: zoom 10 → ×0.38 · zoom 13 → ×0.73 · zoom 16 → ×1.08
-  // Como los marcadores usan anchor:'bottom', MapLibre aplica
-  // translate(-50%,-100%) sobre el tamaño REAL del DOM → el triángulo
-  // siempre apunta al punto correcto sin cálculos adicionales.
   const escalaParaZoom = (zoom) =>
     Math.max(0.3, Math.min(1.25, 0.38 + (zoom - 10) * 0.117));
 
-  const aplicarTamanos = useCallback(() => {
+  const aplicarTamanos = () => {
     if (!mapInstance) return;
     const scale = escalaParaZoom(mapInstance.getZoom());
     imagePinEls.current.forEach((el) => aplicarDimensionesPin(el, scale));
-  }, [mapInstance]);
+  };
 
   useEffect(() => {
     if (!mapInstance) return;
@@ -230,135 +224,164 @@ const PinLayer = ({ reloadTrigger, onReload }) => {
     return () => mapInstance.off("zoom", aplicarTamanos);
   }, [mapInstance, aplicarTamanos]);
 
-  // ── Cargar y dibujar pines ───────────────────────────────────────────────────
+  // ── Cargar todos los marcadores ───────────────────────────────────────────
   useEffect(() => {
     if (!mapInstance) return;
 
     const cargar = async () => {
-      // Limpiar marcadores e imagen-pins anteriores
-      marcadoresRef.current.forEach((m) => m.remove());
+      marcadoresRef.current.forEach(({ marker }) => marker.remove());
       marcadoresRef.current = [];
       imagePinEls.current = [];
 
       try {
-        const obras = await getObras();
-        obrasRef.current = obras;
+        const [obras, extras] = await Promise.all([
+          getObras(),
+          getMarcadoresTodos(),
+        ]);
+
+        // Guardar obras PP en el store para StatsModal
         setObras(obras);
+        todosRef.current = [
+          ...obras.map((o) => ({ ...o, capa: "pp" })),
+          ...extras,
+        ];
 
-        obras.forEach((obra) => {
-          // Usar pin de imagen si la obra tiene una asignada
-          const el = obra.pinImageUrl
-            ? crearElementoPinImagen(obra.pinImageUrl)
-            : crearElementoPin(obra.anio);
+        todosRef.current.forEach((item) => {
+          const { capa, anio, distritoLocal, pinImageUrl, coords } = item;
 
-          el.dataset.anio = obra.anio;
-          el.dataset.tipo = (obra.tipo || "")
+          // Ignorar documentos sin coordenadas válidas (ej. placeholders de Firebase Console)
+          if (!coords?.lat || !coords?.lng) return;
+
+          // Color del pin
+          let pinColor;
+          if (capa === "pp") {
+            pinColor = PIN_COLORS_ANIO[anio] || PIN_DEFAULT;
+          } else {
+            pinColor = COLORES_MARCADOR[capa] || PIN_DEFAULT;
+          }
+
+          const el = pinImageUrl
+            ? crearElementoPinImagen(pinImageUrl)
+            : crearElementoPin(pinColor);
+
+          el.dataset.capa = capa;
+          el.dataset.anio = anio || "";
+          el.dataset.dl = distritoLocal || "";
+          el.dataset.tipo = (item.tipo || "")
             .toLowerCase()
             .normalize("NFD")
             .replace(/[\u0300-\u036f]/g, "");
-          el.dataset.id = obra.id;
+          el.dataset.id = item.id;
 
-          // Pines de imagen: registrar y aplicar tamaño según zoom actual
-          if (obra.pinImageUrl) {
+          if (pinImageUrl) {
             aplicarDimensionesPin(el, escalaParaZoom(mapInstance.getZoom()));
             imagePinEls.current.push(el);
           }
+
+          const htmlPopup = capa === "pp"
+            ? crearHTMLPopupPP(item, role)
+            : crearHTMLPopupMarcador(item, role);
 
           const popup = new maplibregl.Popup({
             offset: 25,
             closeButton: false,
             maxWidth: "280px",
-          }).setHTML(crearHTMLPopup(obra, role));
+          }).setHTML(htmlPopup);
 
-          // anchor:'bottom' → MapLibre ancla la PUNTA del triángulo al lat/lng
-          const markerOpts = obra.pinImageUrl
+          const markerOpts = pinImageUrl
             ? { element: el, anchor: "bottom" }
             : { element: el };
 
           const marker = new maplibregl.Marker(markerOpts)
-            .setLngLat([obra.coords.lng, obra.coords.lat])
+            .setLngLat([coords.lng, coords.lat])
             .setPopup(popup)
             .addTo(mapInstance);
 
-          marcadoresRef.current.push(marker);
+          marcadoresRef.current.push({ marker, capa, anio, dl: distritoLocal || "" });
         });
 
         aplicarFiltros();
       } catch (err) {
         console.error(err);
-        toast("Error al cargar las obras.", "error");
+        toast("Error al cargar los marcadores.", "error");
       }
     };
 
     cargar();
   }, [mapInstance, reloadTrigger, role]);
 
-  // Aplicar filtros de año y tipo
+  // ── Aplicar filtros de visibilidad ────────────────────────────────────────
   const aplicarFiltros = () => {
     const filtroLimpio =
       filtroTipo === "all"
         ? "all"
-        : filtroTipo
-            .toLowerCase()
-            .normalize("NFD")
-            .replace(/[\u0300-\u036f]/g, "");
+        : filtroTipo.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
-    marcadoresRef.current.forEach((marker) => {
+    marcadoresRef.current.forEach(({ marker, capa, anio, dl }) => {
       const el = marker.getElement();
-      const anioPin = el.dataset.anio;
       const tipoPin = el.dataset.tipo;
 
-      const pasaAnio = aniosVisibles[anioPin] !== false;
-      const pasaTipo = filtroLimpio === "all" || tipoPin.includes(filtroLimpio);
+      const visible = capa === "pp"
+        ? (aniosVisibles[anio] !== false) && (filtroLimpio === "all" || tipoPin.includes(filtroLimpio))
+        : (marcadoresVisibles[capa] !== false) &&
+          (capa === "rural" || capa === "top100" ? filtrosDL[capa]?.[dl] !== false : true);
 
-      el.style.display = pasaAnio && pasaTipo ? "" : "none";
+      el.style.display = visible ? "" : "none";
     });
   };
 
   useEffect(() => {
     aplicarFiltros();
-  }, [aniosVisibles, filtroTipo, marcadoresRef.current.length]);
+  }, [aniosVisibles, filtroTipo, marcadoresVisibles, filtrosDL, marcadoresRef.current.length]);
 
-  // Delegar eventos de editar/borrar desde los popups
+  // ── Eventos de editar/borrar desde popups ─────────────────────────────────
   useEffect(() => {
     const handler = async (e) => {
+      const id = e.target.dataset?.id;
+      const capa = e.target.dataset?.capa;
+      if (!id || !capa) return;
+
       // BORRAR
       if (e.target.classList.contains("pin-delete")) {
-        const id = e.target.dataset.id;
-        if (!confirm("¿Eliminar esta obra? Quedará registro en auditoría."))
+        if (!confirm("¿Eliminar este marcador? Quedará registro en auditoría."))
           return;
         try {
-          await deleteObra(id, user?.email || "Desconocido");
-          toast("Obra eliminada y enviada a la papelera.", "success");
-          // Cerrar popup activo
+          if (capa === "pp") {
+            await deleteObra(id, user?.email || "Desconocido");
+          } else {
+            await deleteMarcador(capa, id, user?.email || "Desconocido");
+          }
+          toast("Marcador eliminado y enviado a la papelera.", "success");
           document.querySelector(".maplibregl-popup")?.remove();
           onReload?.();
         } catch {
-          toast("Error al eliminar la obra.", "error");
+          toast("Error al eliminar el marcador.", "error");
         }
       }
 
       // EDITAR
       if (e.target.classList.contains("pin-edit")) {
-        const id = e.target.dataset.id;
-        const obra = obrasRef.current.find((o) => o.id === id);
-        if (!obra) return;
+        const item = todosRef.current.find((o) => o.id === id && o.capa === capa);
+        if (!item) return;
 
-        const marker = marcadoresRef.current.find(
-          (m) => m.getElement().dataset.id === id,
+        const entry = marcadoresRef.current.find(
+          (m) => m.marker.getElement().dataset.id === id
         );
-        const coords = marker ? marker.getLngLat() : obra.coords;
+        const coords = entry ? entry.marker.getLngLat() : item.coords;
 
-        // Pre-llenar formulario
         window.__llenarFormularioObra?.({
-          nombre: obra.nombre,
-          tipo: obra.tipo,
-          anio: obra.anio,
-          pinImageUrl: obra.pinImageUrl ?? null,
-          pinImagePath: obra.pinImagePath ?? null,
+          nombre: item.nombre,
+          tipo: item.tipo,
+          anio: item.anio,
+          distritoLocal: item.distritoLocal ?? "",
+          seccion: item.seccion ?? "",
+          detalles: item.detalles ?? "",
+          capa,
+          pinImageUrl: item.pinImageUrl ?? null,
+          pinImagePath: item.pinImagePath ?? null,
         });
 
-        openModalEditar(id, coords);
+        openModalEditar(id, coords, capa);
         document.querySelector(".maplibregl-popup")?.remove();
       }
     };
@@ -367,7 +390,7 @@ const PinLayer = ({ reloadTrigger, onReload }) => {
     return () => document.removeEventListener("click", handler);
   }, [role, user]);
 
-  return null; // Este componente no renderiza JSX propio — actúa sobre el mapa
+  return null;
 };
 
 export default PinLayer;

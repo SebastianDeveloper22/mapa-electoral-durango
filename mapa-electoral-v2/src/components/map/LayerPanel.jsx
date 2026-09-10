@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { useEffect, useRef } from "react";
 import { useMapStore } from "../../store/mapStore";
-import { CAPAS, ANIOS } from "../../config";
+import { CAPAS, ANIOS, DISTRITOS_LOCALES, COLORES_MARCADOR } from "../../config";
 
 const PIN_COLORS = {
   2023: "#f59e0b",
@@ -20,6 +20,12 @@ const CAPA_LABELS = {
   manzana: "Manzanas",
 };
 
+const MARCADORES_EXTRA = [
+  { key: "rural",   label: "Rural",          conDL: true },
+  { key: "top100",  label: "Top 100 Urbano", conDL: true },
+  { key: "general", label: "General",        conDL: false },
+];
+
 const LayerPanel = () => {
   const {
     layerMenuOpen,
@@ -31,11 +37,14 @@ const LayerPanel = () => {
     toggleLabels,
     aniosVisibles,
     toggleAnio,
+    marcadoresVisibles,
+    toggleMarcador,
+    filtrosDL,
+    toggleDL,
   } = useMapStore();
 
   const panelRef = useRef(null);
 
-  // Cerrar al hacer click fuera
   useEffect(() => {
     const handler = (e) => {
       if (panelRef.current && !panelRef.current.contains(e.target)) {
@@ -59,7 +68,9 @@ const LayerPanel = () => {
 
       {/* Panel desplegable */}
       {layerMenuOpen && (
-        <div className="mt-2 w-56 bg-[#1e293b] border border-[#334155] rounded-xl shadow-2xl p-4 flex flex-col gap-1">
+        <div className="mt-2 w-60 bg-[#1e293b] border border-[#334155] rounded-xl shadow-2xl p-4 flex flex-col gap-1 max-h-[80vh] overflow-y-auto">
+
+          {/* ── Cartografía Electoral ── */}
           <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">
             Cartografía Electoral
           </h3>
@@ -76,7 +87,6 @@ const LayerPanel = () => {
                 className="w-3.5 h-3.5 cursor-pointer shrink-0"
                 style={{ accentColor: color }}
               />
-              {/* Indicador visual del color/estilo de la capa */}
               <span
                 className="inline-block shrink-0"
                 style={{
@@ -94,8 +104,9 @@ const LayerPanel = () => {
 
           <hr className="border-[#334155] my-2" />
 
+          {/* ── Marcadores PP ── */}
           <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">
-            Marcadores PP
+          Presupuesto Participativo
           </h4>
 
           {ANIOS.map((anio) => (
@@ -120,6 +131,62 @@ const LayerPanel = () => {
 
           <hr className="border-[#334155] my-2" />
 
+          {/* ── Marcadores Adicionales ── */}
+          <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">
+            Marcadores Adicionales
+          </h4>
+
+          {MARCADORES_EXTRA.map(({ key, label, conDL }) => {
+            const color = COLORES_MARCADOR[key];
+            const activo = marcadoresVisibles[key] !== false;
+            return (
+              <div key={key} className="flex flex-col">
+                {/* Toggle de visibilidad de la capa */}
+                <label className="flex items-center gap-2.5 py-1 cursor-pointer hover:text-white transition-colors text-sm text-slate-200">
+                  <input
+                    type="checkbox"
+                    checked={activo}
+                    onChange={() => toggleMarcador(key)}
+                    className="w-3.5 h-3.5 cursor-pointer shrink-0"
+                    style={{ accentColor: color }}
+                  />
+                  <span
+                    className="inline-block w-2.5 h-2.5 rounded-full shrink-0"
+                    style={{ backgroundColor: color, opacity: activo ? 1 : 0.35 }}
+                  />
+                  {label}
+                </label>
+
+                {/* Sub-filtros DL solo para rural y top100 */}
+                {conDL && activo && (
+                  <div className="ml-6 mt-0.5 mb-1 flex flex-col gap-0.5">
+                    <span className="text-[10px] uppercase tracking-wider text-slate-500 mb-1">
+                      Filtrar por Distrito
+                    </span>
+                    {DISTRITOS_LOCALES.map((dl) => (
+                      <label
+                        key={dl}
+                        className="flex items-center gap-2 cursor-pointer text-xs text-slate-300 hover:text-white transition-colors py-0.5"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={filtrosDL[key]?.[dl] !== false}
+                          onChange={() => toggleDL(key, dl)}
+                          className="w-3 h-3 cursor-pointer"
+                          style={{ accentColor: color }}
+                        />
+                        {dl}
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          <hr className="border-[#334155] my-2" />
+
+          {/* ── Etiquetas ── */}
           <label className="flex items-center gap-2.5 py-1 cursor-pointer text-sm font-semibold text-blue-400">
             <input
               type="checkbox"

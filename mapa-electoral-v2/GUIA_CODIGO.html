@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guía de Código — Mapa Electoral Durango v2</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0f172a; --surface: #1e293b; --border: #334155;
+    --text: #e2e8f0; --muted: #94a3b8; --accent: #3b82f6;
+    --green: #10b981; --yellow: #f59e0b; --red: #ef4444; --purple: #a855f7;
+    --code-bg: #0a1628;
+  }
+  body { font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); display: flex; min-height: 100vh; font-size: 14px; }
+
+  /* SIDEBAR */
+  #sidebar { width: 240px; min-width: 240px; background: var(--surface); border-right: 1px solid var(--border); position: sticky; top: 0; height: 100vh; overflow-y: auto; padding: 16px 0; flex-shrink: 0; }
+  #sidebar h1 { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; padding: 0 16px 12px; border-bottom: 1px solid var(--border); }
+  #sidebar a { display: block; padding: 6px 16px; color: var(--muted); text-decoration: none; font-size: 12px; border-left: 2px solid transparent; transition: all .15s; }
+  #sidebar a:hover { color: var(--text); background: rgba(255,255,255,.04); border-left-color: var(--accent); }
+  #sidebar .group { padding: 10px 16px 4px; font-size: 10px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: .1em; }
+
+  /* MAIN */
+  #main { flex: 1; padding: 32px 40px; max-width: 960px; overflow-x: hidden; }
+  #main h2 { font-size: 20px; font-weight: 700; color: #fff; margin: 40px 0 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+  #main h2:first-child { margin-top: 0; }
+  #main h3 { font-size: 14px; font-weight: 600; color: var(--accent); margin: 24px 0 10px; }
+  p { color: var(--muted); line-height: 1.6; margin-bottom: 8px; }
+
+  /* ENTRY */
+  .entry { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; margin-bottom: 8px; }
+  .entry-header { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 6px; }
+  .entry-desc { flex: 1; color: var(--text); font-size: 13px; line-height: 1.5; }
+  .loc { font-family: monospace; font-size: 11px; color: var(--muted); background: var(--code-bg); padding: 1px 6px; border-radius: 4px; white-space: nowrap; }
+  code { font-family: 'Courier New', monospace; font-size: 12px; background: var(--code-bg); color: #93c5fd; padding: 2px 6px; border-radius: 4px; display: inline-block; word-break: break-all; }
+  .val { margin-top: 4px; }
+
+  /* BADGES */
+  .badge { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 999px; white-space: nowrap; flex-shrink: 0; }
+  .b-text  { background: #1e3a5f; color: #93c5fd; }
+  .b-color { background: #1c3028; color: #6ee7b7; }
+  .b-cfg   { background: #3b2a00; color: #fcd34d; }
+  .b-logic { background: #2d1a3a; color: #d8b4fe; }
+  .b-msg   { background: #3b1a1a; color: #fca5a5; }
+
+  /* COLOR SWATCH */
+  .swatch { display: inline-block; width: 14px; height: 14px; border-radius: 3px; border: 1px solid rgba(255,255,255,.2); vertical-align: middle; margin-right: 4px; flex-shrink: 0; }
+
+  /* TABLE */
+  table { width: 100%; border-collapse: collapse; margin: 8px 0 16px; font-size: 12px; }
+  th { text-align: left; color: var(--muted); font-weight: 600; padding: 6px 10px; border-bottom: 1px solid var(--border); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
+  td { padding: 7px 10px; border-bottom: 1px solid rgba(51,65,85,.5); color: var(--text); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  td:first-child { color: var(--muted); font-family: monospace; font-size: 11px; }
+
+  /* DETAILS */
+  details { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; }
+  summary { padding: 10px 14px; cursor: pointer; font-weight: 600; font-size: 13px; color: var(--text); user-select: none; list-style: none; display: flex; align-items: center; gap: 8px; }
+  summary::before { content: '▶'; font-size: 10px; color: var(--muted); transition: transform .15s; }
+  details[open] summary::before { transform: rotate(90deg); }
+  .details-body { padding: 0 14px 14px; }
+
+  /* TIP */
+  .tip { background: rgba(59,130,246,.1); border-left: 3px solid var(--accent); border-radius: 4px; padding: 8px 12px; margin: 8px 0; font-size: 12px; color: #93c5fd; }
+  .warn { background: rgba(245,158,11,.08); border-left: 3px solid var(--yellow); border-radius: 4px; padding: 8px 12px; margin: 8px 0; font-size: 12px; color: #fcd34d; }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 5px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 9px; }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<nav id="sidebar">
+  <h1>Mapa Electoral DGO v2</h1>
+  <div class="group">Navegación</div>
+  <a href="#archivos">📁 Índice de Archivos</a>
+  <a href="#textos">💬 Textos y Placeholders</a>
+  <a href="#colores">🎨 Colores y Estilos</a>
+  <a href="#config">⚙️ Config Central</a>
+  <a href="#mensajes">🔔 Mensajes del Sistema</a>
+  <div class="group">Módulos</div>
+  <a href="#mapa">🗺️ Mapa y Capas</a>
+  <a href="#pp">📍 Módulo PP — Marcadores</a>
+  <a href="#electoral">🗳️ Módulo Electoral</a>
+  <a href="#admin">🛡️ Admin y Auth</a>
+  <div class="group">Referencia</div>
+  <a href="#numericos">🔢 Valores Numéricos</a>
+  <a href="#firestore">🔥 Firestore</a>
+</nav>
+
+<!-- MAIN -->
+<main id="main">
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<h2 id="archivos">📁 Índice de Archivos</h2>
+<p>Todos los archivos fuente con su propósito en una línea.</p>
+<table>
+  <tr><th>Archivo</th><th>Propósito</th></tr>
+  <tr><td>src/main.jsx</td><td>Punto de entrada — monta React en el DOM</td></tr>
+  <tr><td>src/App.jsx</td><td>Componente raíz del módulo PP — solo renderiza MapPage</td></tr>
+  <tr><td>src/AppRouter.jsx</td><td>Rutas, protección de auth y Toast global</td></tr>
+  <tr><td>src/config/index.js</td><td>Toda la configuración centralizada (años, colores, capas, partidos...)</td></tr>
+  <tr><td>src/hooks/useAuth.js</td><td>Listener de Firebase Auth + carga de rol desde Firestore</td></tr>
+  <tr><td>src/store/authStore.js</td><td>Estado global: user, role, loading</td></tr>
+  <tr><td>src/store/mapStore.js</td><td>Estado global: capas visibles, filtros, satélite, DL</td></tr>
+  <tr><td>src/store/obrasStore.js</td><td>Estado global: obras PP, modal abierto, capa en edición</td></tr>
+  <tr><td>src/store/electoralStore.js</td><td>Estado global: elecciones, casillas, resultados, vista</td></tr>
+  <tr><td>src/services/firebase.js</td><td>Inicializa Firebase desde variables de entorno .env</td></tr>
+  <tr><td>src/services/obrasService.js</td><td>CRUD de obras PP + subida/borrado de imágenes en Storage</td></tr>
+  <tr><td>src/services/marcadoresService.js</td><td>CRUD para marcadores Rural, Top 100 y General</td></tr>
+  <tr><td>src/services/electoralService.js</td><td>CRUD de elecciones, casillas, resultados; listener real-time</td></tr>
+  <tr><td>src/services/adminService.js</td><td>Gestión de usuarios y roles en Firestore</td></tr>
+  <tr><td>src/services/exportarPDF.js</td><td>Genera PDF oficio de cartografía electoral con jsPDF</td></tr>
+  <tr><td>src/components/auth/LoginScreen.jsx</td><td>Pantalla de inicio de sesión</td></tr>
+  <tr><td>src/components/map/MapContainer.jsx</td><td>Inicializa MapLibre GL, carga capas cartográficas</td></tr>
+  <tr><td>src/components/map/MapPage.jsx</td><td>Layout del módulo PP — ensambla todos los sub-componentes</td></tr>
+  <tr><td>src/components/map/LayerPanel.jsx</td><td>Panel de capas cartográficas y filtros de marcadores</td></tr>
+  <tr><td>src/components/map/MapControls.jsx</td><td>Botones flotantes (logout, admin, electoral, stats, PDF, satélite)</td></tr>
+  <tr><td>src/components/map/SearchBar.jsx</td><td>Buscador de secciones, colonias y zonas con autocomplete</td></tr>
+  <tr><td>src/components/obras/ObraModal.jsx</td><td>Modal para crear/editar marcadores (PP, Rural, Top100, General)</td></tr>
+  <tr><td>src/components/obras/PinLayer.jsx</td><td>Renderiza todos los pines en el mapa desde Firestore</td></tr>
+  <tr><td>src/components/obras/StatsModal.jsx</td><td>Estadísticas con gráficas por capa</td></tr>
+  <tr><td>src/components/obras/QuickFilters.jsx</td><td>Filtros rápidos por tipo (actualmente no usado en la UI)</td></tr>
+  <tr><td>src/components/admin/AdminPanel.jsx</td><td>Gestión de usuarios y roles (solo admin)</td></tr>
+  <tr><td>src/components/ui/Toast.jsx</td><td>Sistema de notificaciones toast</td></tr>
+  <tr><td>src/pages/ElectoralPage.jsx</td><td>Página completa del módulo electoral</td></tr>
+  <tr><td>src/components/electoral/CasillaLayer.jsx</td><td>Pines de casillas electorales con colores dinámicos</td></tr>
+  <tr><td>src/components/electoral/CapturaVotosModal.jsx</td><td>Modal para capturar votos de una casilla</td></tr>
+  <tr><td>src/components/electoral/NuevaCasillaModal.jsx</td><td>Modal para crear casilla manualmente</td></tr>
+  <tr><td>src/components/electoral/FiltrosCasillasPanel.jsx</td><td>Panel de filtros de casillas electorales</td></tr>
+  <tr><td>src/components/electoral/EleccionesAdminPanel.jsx</td><td>Panel admin: crear/activar/borrar elecciones, importar CSV</td></tr>
+  <tr><td>src/components/electoral/ExportarPDFModal.jsx</td><td>Modal para seleccionar zona/sección y exportar PDF</td></tr>
+  <tr><td>src/components/electoral/RecalcularCoordsButton.jsx</td><td>Recalcula coordenadas GPS de casillas sin ubicación</td></tr>
+  <tr><td>src/components/electoral/electoralHelpers.js</td><td>Lógica de coaliciones (PAN+PRI, MORENA+PT+PVEM, etc.)</td></tr>
+  <tr><td>src/components/electoral/importador/ImportadorCSVModal.jsx</td><td>Wizard para importar CSV del PREP/INE</td></tr>
+  <tr><td>src/components/electoral/importador/parsearCSV.js</td><td>Parsea el CSV del PREP, extrae casillas y votos</td></tr>
+  <tr><td>src/components/electoral/importador/calcularCentroide.js</td><td>Calcula centroides de secciones desde tiles PBF locales</td></tr>
+</table>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<h2 id="textos">💬 Textos y Placeholders</h2>
+
+<h3>Login</h3>
+<div class="entry"><div class="entry-header"><span class="badge b-text">TEXTO</span><span class="entry-desc">Título de bienvenida</span><span class="loc">LoginScreen.jsx:46</span></div><div class="val"><code>"Bienvenido"</code></div></div>
+<div class="entry"><div class="entry-header"><span class="badge b-text">TEXTO</span><span class="entry-desc">Subtítulo descriptivo</span><span class="loc">LoginScreen.jsx:48</span></div><div class="val"><code>"Introduce tus credenciales para acceder al sistema cartográfico de Durango."</code></div></div>
+<div class="entry"><div class="entry-header"><span class="badge b-text">TEXTO</span><span class="entry-desc">Label campo correo</span><span class="loc">LoginScreen.jsx:54</span></div><div class="val"><code>"Correo Electrónico"</code></div></div>
+<div class="entry"><div class="entry-header"><span class="badge b-text">TEXTO</span><span class="entry-desc">Placeholder campo correo</span><span class="loc">LoginScreen.jsx:61</span></div><div class="val"><code>"usuario@dominio.com"</code></div></div>
+<div class="entry"><div class="entry-header"><span class="badge b-text">TEXTO</span><span class="entry-desc">Label campo contraseña</span><span class="loc">LoginScreen.jsx:70</span></div><div class="val"><code>"Contraseña"</code></div></div>
+<div class="entry"><div class="entry-header"><span class="badge b-text">TEXTO</span><span class="entry-desc">Placeholder campo contraseña</span><span class="loc">LoginScreen.jsx:78</span></div><div class="val"><code>"••••••••"</code></div></div>
+<div class="entry"><div class="entry-header"><span class="badge b-text">TEXTO</span><span class="entry-desc">Botón iniciar sesión</span><span class="loc">LoginScreen.jsx:90</span></div><div class="val"><code>"Iniciar Sesión"</code> / <code>"Verificando..."</code> (mientras carga)</div></div>
+<div class="entry"><div class="entry-header"><span class="badge b-text">TEXTO</span><span class="entry-desc">Pie de pantalla</span><span class="loc">LoginScreen.jsx:93</span></div><div class="val"><code>"S.I.G. v2.0 | Estado de Durango"</code></div></div>
+
+<h3>Panel de Capas (LayerPanel)</h3>
+<div class="entry"><div class="entry-header"><span class="badge b-text">TEXTO</span><span class="entry-desc">Botón que abre el panel</span><span class="loc">LayerPanel.jsx:56</span></div><div class="val"><code>"🗺️ Capas"</code></div></div>
+<div class="entry"><div class="entry-header"><span class="badge b-text">TEXTO</span><span class="entry-desc">Encabezado sección cartográfica</span><span class="loc">LayerPanel.jsx:74</span></div><div class="val"><code>"Cartografía Electoral"</code></div></div>
+<div class="entry"><div class="entry-header"><span class="badge b-text">TEXTO</span><span class="entry-desc">Encabezado marcadores PP</span><span class="loc">LayerPanel.jsx:109</span></div><div class="val"><code>"Marcadores PP"</code></div></div>
+<div class="entry"><div class="entry-header"><span class="badge b-text">TEXTO</span><span class="entry-desc">Label obras por año</span><span class="loc">LayerPanel.jsx:118</span></div><div class="val"><code>"Obras {año}"</code> — generado dinámicamente desde ANIOS en config</div></div>
+<div class="entry"><div class="entry-header"><span class="badge b-text">TEXTO</span><span class="entry-desc">Encabezado marcadores adicionales</span><span class="loc">LayerPanel.jsx:136</span></div><div class="val"><code>"Marcadores Adicionales"</code></div></div>
+<div class="entry"><div class="entry-header"><span class="badge b-text">TEXTO</span><span class="entry-desc">Sub-título filtros de distrito</span><span class="loc">LayerPanel.jsx:163</span></div><div class="val"><code>"Filtrar por Distrito"</code></div></div>
+<div class="entry"><div class="entry-header"><span class="badge b-text">TEXTO</span><span class="entry-desc">Toggle mostrar etiquetas</span><span class="loc">LayerPanel.jsx:197</span></div><div class="val"><code>"Mostrar Etiquetas"</code></div></div>
+
+<h3>Controles del Mapa (MapControls)</h3>
+<div class="entry"><div class="entry-header"><span class="badge b-text">TEXTO</span><span class="entry-desc">Botón cerrar sesión</span><span class="loc">MapControls.jsx:69</span></div><div class="val"><code>"Cerrar Sesión"</code></div></div>
+<div class="entry"><div class="entry-header"><span class="badge b-text">TEXTO</span><span class="entry-desc">Botón panel admin</span><span class="loc">MapControls.jsx:77</span></div><div class="val"><code>"🛡️ Admin"</code></div></div>
+<div class="entry"><div class="entry-header"><span class="badge b-text">TEXTO</span><span class="entry-desc">Botón módulo electoral</span><span class="loc">MapControls.jsx:85</span></div><div class="val"><code>"🗳️ Electoral"</code></div></div>
+<div class="entry"><div class="entry-header"><span class="badge b-text">TEXTO</span><span class="entry-desc">Botón estadísticas</span><span class="loc">MapControls.jsx:92</span></div><div class="val"><code>"📊 Estadísticas"</code></div></div>
+<div class="entry"><div class="entry-header"><span class="badge b-text">TEXTO</span><span class="entry-desc">Botón exportar PDF</span><span class="loc">MapControls.jsx:100</span></div><div class="val"><code>"📄 Exportar PDF"</code></div></div>
+<div class="entry"><div class="entry-header"><span class="badge b-text">TEXTO</span><span class="entry-desc">Botón modo satélite</span><span class="loc">MapControls.jsx:116</span></div><div class="val"><code>"🛰️ Satélite"</code></div></div>
+<div class="entry"><div class="entry-header"><span class="badge b-text">TEXTO</span><span class="entry-desc">Botón street view</span><span class="loc">MapControls.jsx:131</span></div><div class="val"><code>"🚶‍♂️ Street View"</code> / <code>"Cancelar"</code></div></div>
+
+<h3>Buscador (SearchBar)</h3>
+<div class="entry"><div class="entry-header"><span class="badge b-text">TEXTO</span><span class="entry-desc">Placeholder del input de búsqueda</span><span class="loc">SearchBar.jsx:179</span></div><div class="val"><code>"Ej: Centro..."</code></div></div>
+<div class="entry"><div class="entry-header"><span class="badge b-text">TEXTO</span><span class="entry-desc">Mensaje cuando no encuentra resultado</span><span class="loc">SearchBar.jsx:98</span></div><div class="val"><code>"No se encontró la ubicación.\n\nRecuerda alejar el mapa primero..."</code></div></div>
+
+<h3>Modal de Marcadores (ObraModal)</h3>
+<div class="entry"><div class="entry-header"><span class="badge b-text">TEXTO</span><span class="entry-desc">Título al crear</span><span class="loc">ObraModal.jsx — línea tituloModal</span></div><div class="val"><code>"📍 Nuevo Marcador"</code></div></div>
+<div class="entry"><div class="entry-header"><span class="badge b-text">TEXTO</span><span class="entry-desc">Subtítulo del modal</span><span class="loc">ObraModal.jsx</span></div><div class="val"><code>"Ingresa los detalles del marcador en esta ubicación."</code></div></div>
+<div class="entry"><div class="entry-header"><span class="badge b-text">TEXTO</span><span class="entry-desc">Label selector de capa</span><span class="loc">ObraModal.jsx</span></div><div class="val"><code>"Tipo de Capa"</code></div></div>
+<div class="entry"><div class="entry-header"><span class="badge b-text">TEXTO</span><span class="entry-desc">Label nombre</span><span class="loc">ObraModal.jsx</span></div><div class="val"><code>"Nombre del Proyecto"</code></div></div>
+<div class="entry"><div class="entry-header"><span class="badge b-text">TEXTO</span><span class="entry-desc">Placeholder nombre (PP)</span><span class="loc">ObraModal.jsx</span></div><div class="val"><code>"Ej. Pavimentación Calle Juárez"</code></div></div>
+<div class="entry"><div class="entry-header"><span class="badge b-text">TEXTO</span><span class="entry-desc">Placeholder tipo (Rural/Top100/General)</span><span class="loc">ObraModal.jsx</span></div><div class="val"><code>"Ej. Camino, Escuela, Parque..."</code></div></div>
+<div class="entry"><div class="entry-header"><span class="badge b-text">TEXTO</span><span class="entry-desc">Placeholder tipo (PP)</span><span class="loc">ObraModal.jsx</span></div><div class="val"><code>"Ej. Infraestructura Hidráulica"</code></div></div>
+<div class="entry"><div class="entry-header"><span class="badge b-text">TEXTO</span><span class="entry-desc">Selector Año de Ejecución — options</span><span class="loc">ObraModal.jsx</span></div><div class="val"><code>"Generación {año}"</code> — generado desde ANIOS en config</div></div>
+<div class="entry"><div class="entry-header"><span class="badge b-text">TEXTO</span><span class="entry-desc">Label Distrito Local</span><span class="loc">ObraModal.jsx</span></div><div class="val"><code>"Distrito Local"</code> (con asterisco rojo de obligatorio)</div></div>
+<div class="entry"><div class="entry-header"><span class="badge b-text">TEXTO</span><span class="entry-desc">Opción vacía del dropdown DL</span><span class="loc">ObraModal.jsx</span></div><div class="val"><code>"Seleccionar distrito..."</code></div></div>
+<div class="entry"><div class="entry-header"><span class="badge b-text">TEXTO</span><span class="entry-desc">Label sección electoral</span><span class="loc">ObraModal.jsx</span></div><div class="val"><code>"Sección Electoral"</code></div></div>
+<div class="entry"><div class="entry-header"><span class="badge b-text">TEXTO</span><span class="entry-desc">Placeholder sección</span><span class="loc">ObraModal.jsx</span></div><div class="val"><code>"Ej. 42"</code></div></div>
+<div class="entry"><div class="entry-header"><span class="badge b-text">TEXTO</span><span class="entry-desc">Label detalles</span><span class="loc">ObraModal.jsx</span></div><div class="val"><code>"Detalles"</code></div></div>
+<div class="entry"><div class="entry-header"><span class="badge b-text">TEXTO</span><span class="entry-desc">Placeholder detalles</span><span class="loc">ObraModal.jsx</span></div><div class="val"><code>"Descripción adicional, observaciones..."</code></div></div>
+<div class="entry"><div class="entry-header"><span class="badge b-text">TEXTO</span><span class="entry-desc">Label imagen del pin</span><span class="loc">ObraModal.jsx</span></div><div class="val"><code>"Imagen del pin"</code> + <code>"(PNG, JPG — opcional)"</code></div></div>
+<div class="entry"><div class="entry-header"><span class="badge b-text">TEXTO</span><span class="entry-desc">Dropzone texto principal</span><span class="loc">ObraModal.jsx:141</span></div><div class="val"><code>"Arrastra una imagen aquí"</code></div></div>
+<div class="entry"><div class="entry-header"><span class="badge b-text">TEXTO</span><span class="entry-desc">Dropzone texto secundario</span><span class="loc">ObraModal.jsx:145</span></div><div class="val"><code>"o haz clic para seleccionarla"</code></div></div>
+<div class="entry"><div class="entry-header"><span class="badge b-text">TEXTO</span><span class="entry-desc">Botones del footer del modal</span><span class="loc">ObraModal.jsx — footer</span></div><div class="val"><code>"Cancelar"</code> / <code>"Guardar"</code> / <code>"Actualizar"</code> / <code>"Guardando..."</code></div></div>
+
+<h3>Modal Nueva Casilla Electoral</h3>
+<div class="entry"><div class="entry-header"><span class="badge b-text">TEXTO</span><span class="entry-desc">Título del modal</span><span class="loc">NuevaCasillaModal.jsx:70</span></div><div class="val"><code>"📍 Nueva Casilla"</code></div></div>
+<div class="entry"><div class="entry-header"><span class="badge b-text">TEXTO</span><span class="entry-desc">Placeholder sección electoral</span><span class="loc">NuevaCasillaModal.jsx:88</span></div><div class="val"><code>"Ej. 0142"</code></div></div>
+<div class="entry"><div class="entry-header"><span class="badge b-text">TEXTO</span><span class="entry-desc">Placeholder descripción casilla</span><span class="loc">NuevaCasillaModal.jsx:102</span></div><div class="val"><code>"Ej. Escuela Benito Juárez"</code></div></div>
+
+<h3>Módulo Electoral (ElectoralPage)</h3>
+<div class="entry"><div class="entry-header"><span class="badge b-text">TEXTO</span><span class="entry-desc">Título del módulo electoral</span><span class="loc">ElectoralPage.jsx:40</span></div><div class="val"><code>"🗳️ Módulo Electoral"</code></div></div>
+<div class="entry"><div class="entry-header"><span class="badge b-text">TEXTO</span><span class="entry-desc">Botón volver al módulo PP</span><span class="loc">ElectoralPage.jsx:47</span></div><div class="val"><code>"← Volver a PP"</code></div></div>
+<div class="entry"><div class="entry-header"><span class="badge b-text">TEXTO</span><span class="entry-desc">Botón admin elecciones</span><span class="loc">ElectoralPage.jsx:575</span></div><div class="val"><code>"⚙️ Elecciones"</code></div></div>
+<div class="entry"><div class="entry-header"><span class="badge b-text">TEXTO</span><span class="entry-desc">Placeholder cuando no hay elección activa</span><span class="loc">ElectoralPage.jsx:602</span></div><div class="val"><code>"Módulo Electoral. Selecciona una elección..."</code></div></div>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<h2 id="colores">🎨 Colores y Estilos</h2>
+
+<h3>Paleta Base de la App (usada en toda la UI)</h3>
+<table>
+  <tr><th>Uso</th><th>Color</th><th>Clase Tailwind / Hex</th></tr>
+  <tr><td>Fondo general</td><td><span class="swatch" style="background:#0f172a"></span> <code>#0f172a</code></td><td>bg-[#0f172a]</td></tr>
+  <tr><td>Superficie de cards/modales</td><td><span class="swatch" style="background:#1e293b"></span> <code>#1e293b</code></td><td>bg-[#1e293b]</td></tr>
+  <tr><td>Bordes</td><td><span class="swatch" style="background:#334155"></span> <code>#334155</code></td><td>border-[#334155]</td></tr>
+  <tr><td>Texto secundario / muted</td><td><span class="swatch" style="background:#94a3b8"></span> <code>#94a3b8</code></td><td>text-slate-400</td></tr>
+  <tr><td>Texto principal</td><td><span class="swatch" style="background:#e2e8f0"></span> <code>#e2e8f0</code></td><td>text-slate-200</td></tr>
+  <tr><td>Acento azul (botones)</td><td><span class="swatch" style="background:#3b82f6"></span> <code>#3b82f6</code></td><td>bg-blue-600</td></tr>
+  <tr><td>Éxito / guardar</td><td><span class="swatch" style="background:#059669"></span> <code>#059669</code></td><td>bg-emerald-600</td></tr>
+  <tr><td>Error / borrar</td><td><span class="swatch" style="background:#dc2626"></span> <code>#dc2626</code></td><td>bg-red-600</td></tr>
+</table>
+
+<h3>Colores de Pines PP (por año)</h3>
+<p>Definidos en <code>PinLayer.jsx</code> línea 15 y en <code>LayerPanel.jsx</code> línea 6.</p>
+<table>
+  <tr><th>Año</th><th>Color</th><th>Hex</th></tr>
+  <tr><td>2023</td><td><span class="swatch" style="background:#f59e0b"></span></td><td><code>#f59e0b</code> (ámbar)</td></tr>
+  <tr><td>2024</td><td><span class="swatch" style="background:#3b82f6"></span></td><td><code>#3b82f6</code> (azul)</td></tr>
+  <tr><td>2025</td><td><span class="swatch" style="background:#10b981"></span></td><td><code>#10b981</code> (esmeralda)</td></tr>
+  <tr><td>2026</td><td><span class="swatch" style="background:#a855f7"></span></td><td><code>#a855f7</code> (púrpura)</td></tr>
+  <tr><td>Sin año</td><td><span class="swatch" style="background:#94a3b8"></span></td><td><code>#94a3b8</code> (gris)</td></tr>
+</table>
+<div class="tip">Para cambiar estos colores hay que actualizarlos en <strong>dos lugares</strong>: <code>PinLayer.jsx:15</code> (objeto PIN_COLORS_ANIO) y <code>LayerPanel.jsx:6</code> (objeto PIN_COLORS).</div>
+
+<h3>Colores de Capas Adicionales</h3>
+<p>Definidos en <code>config/index.js</code> — objeto COLORES_MARCADOR.</p>
+<table>
+  <tr><th>Capa</th><th>Color</th><th>Hex</th></tr>
+  <tr><td>Rural</td><td><span class="swatch" style="background:#22c55e"></span></td><td><code>#22c55e</code> (verde)</td></tr>
+  <tr><td>Top 100 Urbano</td><td><span class="swatch" style="background:#f97316"></span></td><td><code>#f97316</code> (naranja)</td></tr>
+  <tr><td>General</td><td><span class="swatch" style="background:#94a3b8"></span></td><td><code>#94a3b8</code> (gris)</td></tr>
+</table>
+
+<h3>Colores de Capas Cartográficas</h3>
+<p>Definidos en <code>config/index.js</code> — array CAPAS.</p>
+<table>
+  <tr><th>Capa</th><th>Color</th><th>Hex</th><th>Grosor</th></tr>
+  <tr><td>Municipio</td><td><span class="swatch" style="background:#f97316"></span></td><td><code>#f97316</code></td><td>4.2px</td></tr>
+  <tr><td>Distrito Federal</td><td><span class="swatch" style="background:#ef4444"></span></td><td><code>#ef4444</code></td><td>3.0px punteado [6,3]</td></tr>
+  <tr><td>Distrito Local</td><td><span class="swatch" style="background:#a855f7"></span></td><td><code>#a855f7</code></td><td>2.3px punteado [3,2]</td></tr>
+  <tr><td>Zona</td><td><span class="swatch" style="background:#000099"></span></td><td><code>#000099</code></td><td>2.8px sólido</td></tr>
+  <tr><td>Sección</td><td><span class="swatch" style="background:#f472b6"></span></td><td><code>#f472b6</code></td><td>1.6px sólido</td></tr>
+  <tr><td>Colonia</td><td><span class="swatch" style="background:#94a3b8"></span></td><td><code>#94a3b8</code></td><td>0.65px sólido</td></tr>
+  <tr><td>Manzana</td><td><span class="swatch" style="background:#475569"></span></td><td><code>#475569</code></td><td>0.3px sólido</td></tr>
+</table>
+
+<h3>Colores de Partidos Electorales</h3>
+<p>Definidos en <code>config/index.js</code> — array PARTIDOS.</p>
+<table>
+  <tr><th>Partido / Coalición</th><th>Color</th><th>Hex oscuro</th><th>Hex claro</th></tr>
+  <tr><td>PAN-PRI (CC_PAN_PRI)</td><td><span class="swatch" style="background:#003f8a"></span></td><td><code>#003f8a</code></td><td><code>#0052b4</code></td></tr>
+  <tr><td>MORENA (PVEM-PT-MORENA)</td><td><span class="swatch" style="background:#6b0f1a"></span></td><td><code>#6b0f1a</code></td><td><code>#9b1a2a</code></td></tr>
+  <tr><td>Movimiento Ciudadano</td><td><span class="swatch" style="background:#f97316"></span></td><td><code>#f97316</code></td><td><code>#fb923c</code></td></tr>
+  <tr><td>Otros partidos</td><td><span class="swatch" style="background:#64748b"></span></td><td><code>#64748b</code></td><td><code>#94a3b8</code></td></tr>
+  <tr><td>Votos nulos</td><td><span class="swatch" style="background:#374151"></span></td><td><code>#374151</code></td><td><code>#4b5563</code></td></tr>
+</table>
+
+<h3>Colores del PDF</h3>
+<p>Definidos en <code>services/exportarPDF.js</code> líneas 10–23.</p>
+<table>
+  <tr><th>Constante</th><th>Valor</th><th>Uso</th></tr>
+  <tr><td>GRIS_HEADER</td><td><code>#6b7280</code></td><td>Encabezado gris del PDF</td></tr>
+  <tr><td>AZUL_CHIP_BG</td><td><code>#dbeafe</code></td><td>Fondo de pastillas de sección</td></tr>
+  <tr><td>AZUL_CHIP_TX</td><td><code>#1e40af</code></td><td>Texto de pastillas de sección</td></tr>
+  <tr><td>GRIS_FONDO</td><td><code>#f0f6ff</code></td><td>Fondo general del PDF</td></tr>
+  <tr><td>NEGRO_TX</td><td><code>#0f172a</code></td><td>Texto principal</td></tr>
+  <tr><td>BORDE_EXT</td><td><code>#1e293b</code></td><td>Borde exterior</td></tr>
+</table>
+
+<h3>Badges de Rol (AdminPanel)</h3>
+<p>Definidos en <code>AdminPanel.jsx</code> línea 12.</p>
+<table>
+  <tr><th>Rol</th><th>Clases Tailwind</th></tr>
+  <tr><td>lector</td><td><code>bg-slate-700 text-slate-300</code></td></tr>
+  <tr><td>editor</td><td><code>bg-blue-900/60 text-blue-300</code></td></tr>
+  <tr><td>admin</td><td><code>bg-purple-900/60 text-purple-300</code></td></tr>
+</table>
+
+<h3>Toasts (notificaciones)</h3>
+<p>Definidos en <code>ui/Toast.jsx</code> línea 19.</p>
+<table>
+  <tr><th>Tipo</th><th>Clases</th><th>Icono</th></tr>
+  <tr><td>success</td><td><code>border-l-4 border-emerald-500 bg-emerald-500/10 text-emerald-300</code></td><td>✅</td></tr>
+  <tr><td>error</td><td><code>border-l-4 border-red-500 bg-red-500/10 text-red-300</code></td><td>❌</td></tr>
+  <tr><td>warning</td><td><code>border-l-4 border-amber-500 bg-amber-500/10 text-amber-300</code></td><td>⚠️</td></tr>
+  <tr><td>info</td><td><code>border-l-4 border-blue-500 bg-blue-500/10 text-blue-300</code></td><td>ℹ️</td></tr>
+</table>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<h2 id="config">⚙️ Configuración Central</h2>
+<p>Todo está en <strong><code>src/config/index.js</code></strong>. Si necesitas cambiar años, distritos, municipios, partidos o capas, este es el único archivo que tocar.</p>
+
+<details open>
+  <summary>Años de obras PP</summary>
+  <div class="details-body">
+    <div class="entry"><div class="entry-header"><span class="badge b-cfg">CONFIG</span><span class="entry-desc">Array de años disponibles</span><span class="loc">config/index.js:2</span></div><div class="val"><code>ANIOS = ["2023", "2024", "2025", "2026"]</code></div></div>
+    <div class="entry"><div class="entry-header"><span class="badge b-cfg">CONFIG</span><span class="entry-desc">Año seleccionado por defecto</span><span class="loc">config/index.js:3</span></div><div class="val"><code>ANIO_DEFAULT = "2024"</code></div></div>
+    <div class="tip">Para agregar 2027: añade <code>"2027"</code> al array ANIOS y agrega un color en PIN_COLORS_ANIO en <code>PinLayer.jsx</code> y <code>LayerPanel.jsx</code>.</div>
+  </div>
+</details>
+
+<details>
+  <summary>Distritos Locales</summary>
+  <div class="details-body">
+    <div class="entry"><div class="entry-header"><span class="badge b-cfg">CONFIG</span><span class="entry-desc">Opciones del dropdown de Distrito Local</span><span class="loc">config/index.js:14</span></div><div class="val"><code>DISTRITOS_LOCALES = ["DL 1", "DL 2", "DL 3", "DL 4", "DL 5", "DL 6"]</code></div></div>
+    <div class="tip">Para agregar un distrito, añade el string al array. Automáticamente aparece en el modal, el LayerPanel y los filtros.</div>
+  </div>
+</details>
+
+<details>
+  <summary>Secciones electorales (combobox)</summary>
+  <div class="details-body">
+    <div class="entry"><div class="entry-header"><span class="badge b-cfg">CONFIG</span><span class="entry-desc">Rango de secciones para autocomplete</span><span class="loc">config/index.js:17</span></div><div class="val"><code>SECCIONES = Array.from({ length: 500 }, (_, i) => String(i + 1))</code><br>genera: ["1", "2", ..., "500"]</div></div>
+    <div class="tip">Para cambiar el máximo a 400 secciones, cambia <code>length: 500</code> a <code>length: 400</code>.</div>
+  </div>
+</details>
+
+<details>
+  <summary>Tipos de marcadores (capas)</summary>
+  <div class="details-body">
+    <div class="entry"><div class="entry-header"><span class="badge b-cfg">CONFIG</span><span class="entry-desc">Nombres de las 4 capas disponibles al crear un marcador</span><span class="loc">config/index.js:20</span></div>
+    <div class="val"><code>TIPOS_MARCADOR = [<br>  { value: "pp",      label: "Presupuesto Participativo" },<br>  { value: "rural",   label: "Rural" },<br>  { value: "top100",  label: "Top 100 Urbano" },<br>  { value: "general", label: "General" }<br>]</code></div></div>
+    <div class="tip">El <code>label</code> es lo que ve el usuario en el botón selector. El <code>value</code> es el identificador interno — no cambiar sin actualizar también los stores y servicios.</div>
+  </div>
+</details>
+
+<details>
+  <summary>Municipios (39)</summary>
+  <div class="details-body">
+    <div class="entry"><div class="entry-header"><span class="badge b-cfg">CONFIG</span><span class="entry-desc">Lista de municipios de Durango</span><span class="loc">config/index.js:35–76</span></div>
+    <div class="val"><code>MUNICIPIOS = [<br>  { value: "TODOS", label: "Todo el Estado" },<br>  { value: "5",     label: "Durango" },<br>  ... 37 municipios más<br>]</code></div></div>
+    <div class="tip">Se usan en el panel de filtros electorales y en el modal de nueva casilla. Para agregar, añade <code>{ value: "ID", label: "Nombre" }</code>.</div>
+  </div>
+</details>
+
+<details>
+  <summary>Centro y zoom del mapa</summary>
+  <div class="details-body">
+    <div class="entry"><div class="entry-header"><span class="badge b-cfg">CONFIG</span><span class="entry-desc">Coordenadas del centro del mapa al cargar</span><span class="loc">config/index.js:181</span></div><div class="val"><code>MAP_CENTER = [-104.6531, 24.0277]</code> (Durango capital)</div></div>
+    <div class="entry"><div class="entry-header"><span class="badge b-cfg">CONFIG</span><span class="entry-desc">Nivel de zoom inicial</span><span class="loc">config/index.js:182</span></div><div class="val"><code>MAP_ZOOM = 12</code> (valores útiles: 10=estado, 12=ciudad, 14=colonia, 16=calle)</div></div>
+  </div>
+</details>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<h2 id="mensajes">🔔 Mensajes del Sistema</h2>
+
+<h3>Errores de autenticación</h3>
+<p>Definidos en <code>LoginScreen.jsx</code> líneas 13–21 en el objeto <code>ERRORES_AUTH</code>.</p>
+<table>
+  <tr><th>Código Firebase</th><th>Mensaje mostrado al usuario</th></tr>
+  <tr><td>auth/invalid-email</td><td>"El correo electrónico no es válido."</td></tr>
+  <tr><td>auth/user-not-found</td><td>"No existe una cuenta con ese correo."</td></tr>
+  <tr><td>auth/wrong-password</td><td>"Contraseña incorrecta. Intenta de nuevo."</td></tr>
+  <tr><td>auth/invalid-credential</td><td>"Correo o contraseña incorrectos."</td></tr>
+  <tr><td>auth/too-many-requests</td><td>"Demasiados intentos fallidos. Espera unos minutos."</td></tr>
+  <tr><td>auth/network-request-failed</td><td>"Sin conexión a internet. Verifica tu red."</td></tr>
+  <tr><td>auth/user-disabled</td><td>"Esta cuenta ha sido deshabilitada."</td></tr>
+  <tr><td>(cualquier otro)</td><td>"Error al iniciar sesión. Intenta de nuevo."</td></tr>
+</table>
+
+<h3>Toasts de Obras / Marcadores (ObraModal)</h3>
+<table>
+  <tr><th>Situación</th><th>Mensaje</th><th>Tipo</th></tr>
+  <tr><td>Campos vacíos</td><td>"Por favor, completa Nombre y Tipo."</td><td>warning</td></tr>
+  <tr><td>Sin Distrito Local</td><td>"Selecciona un Distrito Local."</td><td>warning</td></tr>
+  <tr><td>Obra PP creada</td><td>"Obra registrada correctamente."</td><td>success</td></tr>
+  <tr><td>Obra PP actualizada</td><td>"Obra actualizada correctamente."</td><td>success</td></tr>
+  <tr><td>Marcador creado</td><td>"Marcador registrado correctamente."</td><td>success</td></tr>
+  <tr><td>Marcador actualizado</td><td>"Marcador actualizado correctamente."</td><td>success</td></tr>
+  <tr><td>Error al guardar</td><td>"Error al guardar el marcador."</td><td>error</td></tr>
+  <tr><td>Imagen inválida</td><td>"Solo se aceptan archivos de imagen."</td><td>warning</td></tr>
+</table>
+
+<h3>Toasts de Pines (PinLayer)</h3>
+<table>
+  <tr><th>Situación</th><th>Mensaje</th><th>Tipo</th></tr>
+  <tr><td>Error al cargar pines</td><td>"Error al cargar los marcadores."</td><td>error</td></tr>
+  <tr><td>Marcador eliminado</td><td>"Marcador eliminado y enviado a la papelera."</td><td>success</td></tr>
+  <tr><td>Error al eliminar</td><td>"Error al eliminar el marcador."</td><td>error</td></tr>
+</table>
+
+<h3>Confirmaciones (dialogs nativos)</h3>
+<table>
+  <tr><th>Acción</th><th>Mensaje de confirmación</th><th>Archivo</th></tr>
+  <tr><td>Eliminar marcador</td><td>"¿Eliminar este marcador? Quedará registro en auditoría."</td><td>PinLayer.jsx</td></tr>
+  <tr><td>Eliminar elección</td><td>"¿Eliminar "{nombre}"? Se perderán todas las casillas..."</td><td>EleccionesAdminPanel.jsx:104</td></tr>
+  <tr><td>Limpiar casillas</td><td>"¿Eliminar TODAS las casillas y resultados...?"</td><td>EleccionesAdminPanel.jsx:121</td></tr>
+  <tr><td>Quitar acceso usuario</td><td>"¿Quitar el acceso a "{email}"?"</td><td>AdminPanel.jsx:86</td></tr>
+</table>
+
+<h3>Toasts de Admin (AdminPanel)</h3>
+<table>
+  <tr><th>Situación</th><th>Mensaje</th></tr>
+  <tr><td>Email inválido</td><td>"Ingresa un correo electrónico válido."</td></tr>
+  <tr><td>Usuario agregado</td><td>'Usuario "{email}" agregado como {rol}.'</td></tr>
+  <tr><td>Ya tiene acceso</td><td>'"{email}" ya tiene acceso asignado.'</td></tr>
+  <tr><td>Rol actualizado</td><td>'Rol actualizado a "{rol}".'</td></tr>
+  <tr><td>Acceso eliminado</td><td>"Acceso eliminado correctamente."</td></tr>
+</table>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<h2 id="mapa">🗺️ Mapa y Capas</h2>
+
+<h3>Fuentes de tiles del mapa</h3>
+<p>Definidas en <code>MapContainer.jsx</code>.</p>
+<div class="entry"><div class="entry-header"><span class="badge b-cfg">CONFIG</span><span class="entry-desc">Mapa base OpenStreetMap</span><span class="loc">MapContainer.jsx:30</span></div><div class="val"><code>"https://a.tile.openstreetmap.org/{z}/{x}/{y}.png"</code></div></div>
+<div class="entry"><div class="entry-header"><span class="badge b-cfg">CONFIG</span><span class="entry-desc">Satélite Esri World Imagery</span><span class="loc">MapContainer.jsx:47</span></div><div class="val"><code>"https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"</code></div></div>
+<div class="entry"><div class="entry-header"><span class="badge b-cfg">CONFIG</span><span class="entry-desc">Teselas vectoriales locales (cartografía)</span><span class="loc">MapContainer.jsx:64</span></div><div class="val"><code>"/tiles/{z}/{x}/{y}.pbf"</code> — archivos en <code>public/tiles/</code></div></div>
+
+<h3>Popups de capas cartográficas</h3>
+<p>Cuando el usuario hace clic sobre una capa en el mapa, aparece un popup. El contenido se genera en <code>MapContainer.jsx</code> línea 143. El popup muestra el valor del campo <code>labelField</code> definido en cada capa en <code>config/index.js</code>.</p>
+
+<h3>Búsqueda de capas (SearchBar)</h3>
+<p>Los tipos de búsqueda se definen en <code>SearchBar.jsx</code> líneas 7–29:</p>
+<table>
+  <tr><th>Botón</th><th>sourceLayer PBF</th><th>Campo buscado</th></tr>
+  <tr><td>Sección</td><td>SECCION</td><td>SECCION</td></tr>
+  <tr><td>Colonia</td><td>COLONIA</td><td>NOMBRE</td></tr>
+  <tr><td>Zona</td><td>ZONAS HECHAS</td><td>Zona</td></tr>
+</table>
+<div class="tip">Zoom de destino al buscar: <code>15</code> — definido en <code>SearchBar.jsx:122</code>. Duración de animación: <code>2000ms</code> en línea 126.</div>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<h2 id="pp">📍 Módulo PP — Marcadores</h2>
+
+<h3>Cómo se crea un marcador (flujo)</h3>
+<p>1. Clic derecho en el mapa → <code>MapContainer.jsx:198</code> llama a <code>openModalNuevo(coords)</code><br>
+2. <code>ObraModal.jsx</code> se abre con selector de capa<br>
+3. Al guardar: PP → <code>obrasService.createObra()</code> → colección <code>obras</code>. Otros → <code>marcadoresService.createMarcador()</code> → <code>marcadores_rural</code>, <code>marcadores_top100</code> o <code>marcadores_generales</code><br>
+4. <code>MapPage.jsx</code> llama <code>handleReload()</code> que incrementa <code>reloadKey</code><br>
+5. <code>PinLayer.jsx</code> re-carga todos los pines</p>
+
+<h3>Dimensiones del pin con imagen</h3>
+<p>Definidas en <code>PinLayer.jsx</code> línea 53 — objeto <code>PIN_IMG_BASE</code>:</p>
+<table>
+  <tr><th>Propiedad</th><th>Valor</th><th>Descripción</th></tr>
+  <tr><td>size</td><td><code>88</code>px</td><td>Lado del cuadro de la imagen (a zoom 14)</td></tr>
+  <tr><td>triH</td><td><code>13</code>px</td><td>Altura del triángulo inferior</td></tr>
+  <tr><td>pad</td><td><code>6</code>px</td><td>Padding interior del logo</td></tr>
+  <tr><td>radius</td><td><code>12</code>px</td><td>Border-radius de la tarjeta</td></tr>
+  <tr><td>border</td><td><code>2.5</code>px</td><td>Grosor del borde</td></tr>
+  <tr><td>BORDER_COLOR</td><td><code>#2d3a4a</code></td><td>Color del borde y triángulo</td></tr>
+</table>
+
+<h3>Escala dinámica del pin según zoom</h3>
+<p>En <code>PinLayer.jsx</code> — función <code>escalaParaZoom</code>:</p>
+<div class="entry"><div class="entry-header"><span class="badge b-logic">LÓGICA</span><span class="entry-desc">Fórmula de escala: zoom 10 → ×0.38 · zoom 13 → ×0.73 · zoom 16 → ×1.08</span><span class="loc">PinLayer.jsx</span></div><div class="val"><code>Math.max(0.3, Math.min(1.25, 0.38 + (zoom - 10) * 0.117))</code></div></div>
+
+<h3>Etiquetas de capa en popups</h3>
+<p>Objeto <code>CAPA_LABELS</code> en <code>PinLayer.jsx</code>:</p>
+<table>
+  <tr><th>Clave interna</th><th>Texto en el popup</th></tr>
+  <tr><td>rural</td><td>"Rural"</td></tr>
+  <tr><td>top100</td><td>"Top 100 Urbano"</td></tr>
+  <tr><td>general</td><td>"General"</td></tr>
+</table>
+
+<h3>StatsModal — Pestañas</h3>
+<p>Definidas en <code>StatsModal.jsx</code> — array TABS:</p>
+<table>
+  <tr><th>key</th><th>Label</th><th>Eje de barras</th><th>Colección fuente</th></tr>
+  <tr><td>pp</td><td>PP</td><td>Por Año</td><td>obras (desde obrasStore)</td></tr>
+  <tr><td>rural</td><td>Rural</td><td>Por Distrito Local</td><td>marcadores_rural</td></tr>
+  <tr><td>top100</td><td>Top 100</td><td>Por Distrito Local</td><td>marcadores_top100</td></tr>
+  <tr><td>general</td><td>General</td><td>Por Tipo</td><td>marcadores_generales</td></tr>
+</table>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<h2 id="electoral">🗳️ Módulo Electoral</h2>
+
+<h3>Tipos de elección disponibles</h3>
+<p>Definidos en <code>config/index.js</code> — array TIPOS_ELECCION:</p>
+<table>
+  <tr><th>value</th><th>label</th></tr>
+  <tr><td>presidencial</td><td>Presidencial</td></tr>
+  <tr><td>gubernatura</td><td>Gubernatura</td></tr>
+  <tr><td>diputado_fed</td><td>Diputación Federal</td></tr>
+  <tr><td>diputado_local</td><td>Diputación Local</td></tr>
+  <tr><td>municipio</td><td>Presidencia Municipal</td></tr>
+</table>
+
+<h3>Tipos de casilla</h3>
+<p>Definidos en <code>config/index.js</code> — array TIPOS_CASILLA:</p>
+<table>
+  <tr><th>value</th><th>label</th></tr>
+  <tr><td>B</td><td>Básica</td></tr>
+  <tr><td>C</td><td>Contigua</td></tr>
+  <tr><td>E</td><td>Extraordinaria</td></tr>
+  <tr><td>S</td><td>Especial</td></tr>
+</table>
+
+<h3>Vistas del mapa electoral</h3>
+<p>Definidas en <code>ElectoralPage.jsx</code> líneas 52–64:</p>
+<table>
+  <tr><th>vista</th><th>Descripción</th><th>Color del pin</th></tr>
+  <tr><td>ganador</td><td>Color del partido que ganó la casilla</td><td>Colores de PARTIDOS en config</td></tr>
+  <tr><td>participacion</td><td>Degradado según % de participación</td><td>Azul oscuro → verde</td></tr>
+  <tr><td>calor</td><td>Mapa de calor por densidad</td><td>Escala de rojo</td></tr>
+</table>
+
+<h3>Colores de participación</h3>
+<p>Definidos en <code>CasillaLayer.jsx</code>:</p>
+<table>
+  <tr><th>Rango</th><th>Color</th></tr>
+  <tr><td>&lt; 20%</td><td><span class="swatch" style="background:#1e3a5f"></span> <code>#1e3a5f</code></td></tr>
+  <tr><td>20–40%</td><td><span class="swatch" style="background:#1d4ed8"></span> <code>#1d4ed8</code></td></tr>
+  <tr><td>40–60%</td><td><span class="swatch" style="background:#0891b2"></span> <code>#0891b2</code></td></tr>
+  <tr><td>60–80%</td><td><span class="swatch" style="background:#059669"></span> <code>#059669</code></td></tr>
+  <tr><td>&gt; 80%</td><td><span class="swatch" style="background:#16a34a"></span> <code>#16a34a</code></td></tr>
+</table>
+
+<h3>Coaliciones electorales (cómo se suman los votos)</h3>
+<p>Definido en <code>electoralHelpers.js</code>:</p>
+<table>
+  <tr><th>Coalición</th><th>Campos que suma</th></tr>
+  <tr><td>PAN</td><td>PAN + PRI + CC_PAN_PRI</td></tr>
+  <tr><td>MORENA</td><td>PVEM + PT + MORENA + C_PVEM_PT_MORENA + C_PVEM_PT + C_PVEM_MORENA + C_PT_MORENA</td></tr>
+  <tr><td>MC</td><td>MC</td></tr>
+  <tr><td>OTROS</td><td>PESD + PV + PER + CAND_IND_EDRH + NO_REGISTRADAS</td></tr>
+  <tr><td>NULOS</td><td>NULOS</td></tr>
+</table>
+
+<h3>Campos del CSV del PREP (columnas)</h3>
+<p>Definidos en <code>parsearCSV.js</code> líneas 6–40:</p>
+<table>
+  <tr><th>Col.</th><th>Campo</th></tr>
+  <tr><td>17–22</td><td>PAN, PRI, PVEM, PT, MC, MORENA</td></tr>
+  <tr><td>23–26</td><td>PESD, PV, PER, CAND_IND_EDRH</td></tr>
+  <tr><td>27–30</td><td>C_PVEM_PT_MORENA, C_PVEM_PT, C_PVEM_MORENA, C_PT_MORENA</td></tr>
+  <tr><td>31</td><td>CC_PAN_PRI</td></tr>
+  <tr><td>32–33</td><td>NO_REGISTRADAS, NULOS</td></tr>
+</table>
+
+<h3>Dimensiones del PDF electoral</h3>
+<p>Definidas en <code>services/exportarPDF.js</code> líneas 26–40:</p>
+<table>
+  <tr><th>Constante</th><th>Valor</th><th>Descripción</th></tr>
+  <tr><td>W</td><td>330 mm</td><td>Ancho (oficio landscape)</td></tr>
+  <tr><td>H</td><td>216 mm</td><td>Alto</td></tr>
+  <tr><td>MARGEN</td><td>10 mm</td><td>Margen exterior</td></tr>
+  <tr><td>HEADER_H</td><td>16 mm</td><td>Altura del encabezado</td></tr>
+  <tr><td>Resolución captura</td><td>3× (~270-300 DPI)</td><td>exportarPDF.js:68</td></tr>
+</table>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<h2 id="admin">🛡️ Admin y Auth</h2>
+
+<h3>Roles del sistema</h3>
+<table>
+  <tr><th>Rol</th><th>Puede hacer</th></tr>
+  <tr><td><strong>lector</strong></td><td>Solo ver datos. No puede crear, editar ni borrar nada.</td></tr>
+  <tr><td><strong>editor</strong></td><td>CRUD de obras, marcadores, elecciones, casillas, resultados.</td></tr>
+  <tr><td><strong>admin</strong></td><td>Todo lo anterior + gestionar roles de usuarios + ver papelera.</td></tr>
+</table>
+<div class="warn">En dispositivos móviles (ancho ≤ 768px), los roles editor y admin se degradan automáticamente a lector. Definido en <code>hooks/useAuth.js</code>.</div>
+
+<h3>Opciones de rol en AdminPanel</h3>
+<p>Definidas en <code>AdminPanel.jsx</code> línea 10:</p>
+<div class="entry"><div class="entry-header"><span class="badge b-cfg">CONFIG</span><span class="entry-desc">Roles disponibles para asignar</span><span class="loc">AdminPanel.jsx:10</span></div><div class="val"><code>ROLES_OPCIONES = ["lector", "editor", "admin"]</code></div></div>
+
+<h3>Cómo se carga el rol de un usuario</h3>
+<p>Al hacer login, <code>useAuth.js</code> busca en Firestore el documento <code>roles/{uid}</code> y lee el campo <code>rol</code>. Si no existe el documento, el usuario queda bloqueado (sin rol = sin acceso a escritura). El primer admin debe crearse manualmente en Firebase Console.</p>
+
+<h3>Cómo agregar un usuario nuevo</h3>
+<p>1. Abre la app como <strong>admin</strong> → botón <strong>🛡️ Admin</strong><br>
+2. Escribe el email del usuario y selecciona el rol<br>
+3. El usuario debe existir previamente en Firebase Authentication (puede registrarse o ser creado desde Firebase Console)</p>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<h2 id="numericos">🔢 Valores Numéricos Clave</h2>
+<table>
+  <tr><th>Qué</th><th>Valor</th><th>Archivo:línea</th></tr>
+  <tr><td>Duración toast (auto-cierre)</td><td>3500 ms</td><td>ui/Toast.jsx:12</td></tr>
+  <tr><td>Duración animación flyTo mapa</td><td>2000 ms</td><td>SearchBar.jsx:126</td></tr>
+  <tr><td>Zoom al buscar sección/colonia</td><td>15</td><td>SearchBar.jsx:122</td></tr>
+  <tr><td>Sugerencias máx en búsqueda</td><td>8</td><td>SearchBar.jsx:59</td></tr>
+  <tr><td>Batch size importación CSV</td><td>200 casillas / batch</td><td>ImportadorCSVModal.jsx:19</td></tr>
+  <tr><td>Max operaciones Firestore/batch</td><td>400 (2 docs × 200)</td><td>ImportadorCSVModal.jsx:17</td></tr>
+  <tr><td>Radio espiral casillas mismo centroide</td><td>0.00028 (~31m)</td><td>CasillaLayer.jsx:25</td></tr>
+  <tr><td>Escala mín. pin imagen</td><td>0.3×</td><td>PinLayer.jsx</td></tr>
+  <tr><td>Escala máx. pin imagen</td><td>1.25×</td><td>PinLayer.jsx</td></tr>
+  <tr><td>Resolución PDF (captura canvas)</td><td>3× (~300 DPI)</td><td>exportarPDF.js:68</td></tr>
+  <tr><td>Tamaño PDF</td><td>330×216 mm (oficio landscape)</td><td>exportarPDF.js:26–27</td></tr>
+  <tr><td>Ancho máx móvil (degradación rol)</td><td>768px</td><td>useAuth.js</td></tr>
+  <tr><td>Rango tiles Durango (importador)</td><td>X: 206–220, Y: 432–446 (zoom 10)</td><td>calcularCentroide.js:119–123</td></tr>
+  <tr><td>Zoom mín capa Municipio</td><td>10</td><td>config/index.js (CAPAS)</td></tr>
+  <tr><td>Zoom mín capa Sección</td><td>11</td><td>config/index.js (CAPAS)</td></tr>
+  <tr><td>Zoom mín capa Colonia</td><td>12</td><td>config/index.js (CAPAS)</td></tr>
+  <tr><td>Zoom mín capa Manzana</td><td>14</td><td>config/index.js (CAPAS)</td></tr>
+</table>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<h2 id="firestore">🔥 Firestore</h2>
+
+<h3>Colecciones y sus campos</h3>
+<table>
+  <tr><th>Colección</th><th>Campos principales</th><th>Quién escribe</th></tr>
+  <tr><td><strong>obras</strong></td><td>nombre, tipo, anio, coords{lat,lng}, creadoPor, fechaCreacion, pinImageUrl, pinImagePath</td><td>editor, admin</td></tr>
+  <tr><td><strong>marcadores_rural</strong></td><td>nombre, tipo, distritoLocal, seccion, detalles, coords{lat,lng}, creadoPor, fechaCreacion, pinImageUrl, pinImagePath</td><td>editor, admin</td></tr>
+  <tr><td><strong>marcadores_top100</strong></td><td>Igual que marcadores_rural</td><td>editor, admin</td></tr>
+  <tr><td><strong>marcadores_generales</strong></td><td>Igual que marcadores_rural</td><td>editor, admin</td></tr>
+  <tr><td><strong>elecciones</strong></td><td>nombre, tipo, anio, descripcion, activa, creadoEn, actualizadoEn</td><td>editor, admin</td></tr>
+  <tr><td><strong>casillas</strong></td><td>eleccion_id, seccion, tipo, lat, lng, municipio, creadoEn</td><td>editor, admin</td></tr>
+  <tr><td><strong>resultados</strong></td><td>casilla_id, eleccion_id, votos{PAN,PRI,...}, total_votos, ganador, creadoEn</td><td>editor, admin</td></tr>
+  <tr><td><strong>roles</strong></td><td>rol ("lector"|"editor"|"admin"), email</td><td>solo admin</td></tr>
+  <tr><td><strong>papelera</strong></td><td>Copia del doc borrado + borradoPor + fechaBorrado</td><td>editor/admin crea; solo admin borra</td></tr>
+</table>
+
+<div class="tip">Las reglas de seguridad están en <code>firestore.rules</code> en la raíz del proyecto. Después de editarlas, despliégalas con: <code>firebase deploy --only firestore:rules</code></div>
+
+<h3>Variables de entorno Firebase</h3>
+<p>Guardadas en <code>.env</code> (nunca subir a git — está en .gitignore):</p>
+<table>
+  <tr><th>Variable</th><th>Descripción</th></tr>
+  <tr><td>VITE_FIREBASE_API_KEY</td><td>API Key del proyecto</td></tr>
+  <tr><td>VITE_FIREBASE_AUTH_DOMAIN</td><td>Dominio de autenticación</td></tr>
+  <tr><td>VITE_FIREBASE_PROJECT_ID</td><td>ID del proyecto Firebase</td></tr>
+  <tr><td>VITE_FIREBASE_STORAGE_BUCKET</td><td>Bucket de Storage para imágenes</td></tr>
+  <tr><td>VITE_FIREBASE_MESSAGING_SENDER_ID</td><td>ID del remitente</td></tr>
+  <tr><td>VITE_FIREBASE_APP_ID</td><td>ID de la app web</td></tr>
+</table>
+<div class="warn">Si clonas el proyecto en otra máquina, necesitas crear el archivo <code>.env</code> manualmente copiando <code>.env.example</code> y poniendo los valores reales desde Firebase Console → Configuración del proyecto.</div>
+
+</main>
+
+<script>
+  // Resaltar link del sidebar según sección visible
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        document.querySelectorAll('#sidebar a').forEach(a => a.style.color = '');
+        const link = document.querySelector(`#sidebar a[href="#${e.target.id}"]`);
+        if (link) { link.style.color = '#93c5fd'; link.style.borderLeftColor = '#3b82f6'; }
+      }
+    });
+  }, { threshold: 0.2 });
+  document.querySelectorAll('h2[id]').forEach(h => observer.observe(h));
+</script>
+</body>
+</html>

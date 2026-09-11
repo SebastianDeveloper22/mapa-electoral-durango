@@ -159,7 +159,7 @@ const CAPA_LABELS = {
 };
 
 const crearHTMLPopupMarcador = (m, role) => {
-  const { id, capa, nombre, tipo, distritoLocal, seccion, detalles, coords, creadoPor, fechaCreacion } = m;
+  const { id, capa, nombre, tipo, distritoLocal, seccion, zonaElectoral, referencia, detalles, coords, creadoPor, fechaCreacion } = m;
   const googleUrl = `https://www.google.com/maps/dir/?api=1&destination=${coords.lat},${coords.lng}`;
   const canEdit = role === ROLES.ADMIN || role === ROLES.EDITOR;
   const botonesEdicion = canEdit
@@ -172,6 +172,12 @@ const crearHTMLPopupMarcador = (m, role) => {
   const secRow = seccion
     ? `<div class="pin-popup-row"><span class="pin-key">Sección</span><span class="pin-val">${seccion}</span></div>`
     : "";
+  const zonaRow = zonaElectoral
+    ? `<div class="pin-popup-row"><span class="pin-key">Zona</span><span class="pin-val">${zonaElectoral}</span></div>`
+    : "";
+  const refRow = referencia
+    ? `<div class="pin-popup-row"><span class="pin-key">Referencia</span><span class="pin-val">${referencia}</span></div>`
+    : "";
   const detRow = detalles
     ? `<div class="pin-popup-row"><span class="pin-key">Detalles</span><span class="pin-val">${detalles}</span></div>`
     : "";
@@ -179,9 +185,7 @@ const crearHTMLPopupMarcador = (m, role) => {
     <div class="pin-popup">
       <div class="pin-popup-header">${CAPA_LABELS[capa] ?? capa}</div>
       <div class="pin-popup-body">
-        <div class="pin-popup-row"><span class="pin-key">Nombre</span><span class="pin-val">${nombre}</span></div>
-        <div class="pin-popup-row"><span class="pin-key">Tipo</span><span class="pin-val">${tipo}</span></div>
-        ${dlRow}${secRow}${detRow}
+        ${dlRow}${secRow}${zonaRow}${refRow}${detRow}
       </div>
       <div class="pin-popup-actions">
         <a href="${googleUrl}" target="_blank" class="pin-btn pin-route">🗺️ Ruta</a>
@@ -284,9 +288,11 @@ const PinLayer = ({ reloadTrigger, onReload }) => {
 
           const popup = new maplibregl.Popup({
             offset: 25,
-            closeButton: false,
+            closeButton: true,
             maxWidth: "280px",
           }).setHTML(htmlPopup);
+
+          el.classList.add("pin-marcador");
 
           const markerOpts = pinImageUrl
             ? { element: el, anchor: "bottom" }
@@ -375,6 +381,8 @@ const PinLayer = ({ reloadTrigger, onReload }) => {
           anio: item.anio,
           distritoLocal: item.distritoLocal ?? "",
           seccion: item.seccion ?? "",
+          zonaElectoral: item.zonaElectoral ?? "",
+          referencia: item.referencia ?? "",
           detalles: item.detalles ?? "",
           capa,
           pinImageUrl: item.pinImageUrl ?? null,

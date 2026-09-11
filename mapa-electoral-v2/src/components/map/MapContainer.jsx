@@ -141,6 +141,7 @@ const MapContainer = () => {
 
       // Popups al hacer click en capas
       map.on("click", (e) => {
+        if (e.originalEvent.target.closest(".pin-marcador")) return;
         const activeIds = CAPAS.filter(
           ({ id }) => useMapStore.getState().layersVisible[id],
         ).map(({ id }) => `layer-${id}-fill`);

@@ -182,6 +182,8 @@ const ObraModal = ({ onSaved }) => {
   // Campos Rural / Top100 / General
   const [distritoLocal, setDistritoLocal] = useState("");
   const [seccion, setSeccion] = useState("");
+  const [zonaElectoral, setZonaElectoral] = useState("");
+  const [referencia, setReferencia] = useState("");
   const [detalles, setDetalles] = useState("");
 
   const [saving, setSaving] = useState(false);
@@ -197,6 +199,8 @@ const ObraModal = ({ onSaved }) => {
       setAnio(ANIO_DEFAULT);
       setDistritoLocal("");
       setSeccion("");
+      setZonaElectoral("");
+      setReferencia("");
       setDetalles("");
       imagen.reset();
     }
@@ -210,6 +214,8 @@ const ObraModal = ({ onSaved }) => {
       anio: a,
       distritoLocal: dl,
       seccion: sec,
+      zonaElectoral: zona,
+      referencia: ref,
       detalles: det,
       capa: c,
       pinImageUrl,
@@ -221,6 +227,8 @@ const ObraModal = ({ onSaved }) => {
       setAnio(a ?? ANIO_DEFAULT);
       setDistritoLocal(dl ?? "");
       setSeccion(sec ?? "");
+      setZonaElectoral(zona ?? "");
+      setReferencia(ref ?? "");
       setDetalles(det ?? "");
       imagen.cargar({ pinImageUrl, pinImagePath });
     };
@@ -229,7 +237,8 @@ const ObraModal = ({ onSaved }) => {
 
   // ── Guardar ────────────────────────────────────────────────────────────────
   const handleSave = useCallback(async () => {
-    if (!nombre.trim() || !tipo.trim()) {
+    const requiereNombreTipo = capa === "pp" || capa === "general";
+    if (requiereNombreTipo && (!nombre.trim() || !tipo.trim())) {
       toast("Por favor, completa Nombre y Tipo.", "warning");
       return;
     }
@@ -293,6 +302,8 @@ const ObraModal = ({ onSaved }) => {
           tipo,
           distritoLocal: distritoLocal || null,
           seccion: seccion || null,
+          zonaElectoral: (capa === "rural" || capa === "top100") ? (zonaElectoral || null) : null,
+          referencia: (capa === "rural" || capa === "top100") ? (referencia || null) : null,
           detalles: detalles || null,
           coords: coordsTemporales,
           userEmail,
@@ -368,37 +379,41 @@ const ObraModal = ({ onSaved }) => {
             </div>
           )}
 
-          {/* Nombre */}
-          <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1.5 uppercase tracking-wider">
-              Nombre
-            </label>
-            <input
-              type="text"
-              value={nombre}
-              onChange={(e) => setNombre(e.target.value)}
-              placeholder="Ej. Domo, Comité Vecinal, Puente..."
-              className="w-full bg-[#0f172a] border border-[#334155] text-white rounded-lg px-3 py-2.5 text-sm outline-none focus:border-blue-500 transition-colors placeholder:text-slate-600"
-            />
-          </div>
+          {/* Nombre — solo PP y General */}
+          {(capaActiva === "pp" || capaActiva === "general") && (
+            <div>
+              <label className="block text-xs font-medium text-slate-300 mb-1.5 uppercase tracking-wider">
+                Nombre
+              </label>
+              <input
+                type="text"
+                value={nombre}
+                onChange={(e) => setNombre(e.target.value)}
+                placeholder="Ej. Domo, Comité Vecinal, Puente..."
+                className="w-full bg-[#0f172a] border border-[#334155] text-white rounded-lg px-3 py-2.5 text-sm outline-none focus:border-blue-500 transition-colors placeholder:text-slate-600"
+              />
+            </div>
+          )}
 
-          {/* Tipo */}
-          <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1.5 uppercase tracking-wider">
-              Tipo
-            </label>
-            <input
-              type="text"
-              value={tipo}
-              onChange={(e) => setTipo(e.target.value)}
-              placeholder={
-                capaActiva === "pp"
-                  ? "Ej. Infraestructura Hidráulica"
-                  : "Ej. Camino, Escuela, Parque..."
-              }
-              className="w-full bg-[#0f172a] border border-[#334155] text-white rounded-lg px-3 py-2.5 text-sm outline-none focus:border-blue-500 transition-colors placeholder:text-slate-600"
-            />
-          </div>
+          {/* Tipo — solo PP y General */}
+          {(capaActiva === "pp" || capaActiva === "general") && (
+            <div>
+              <label className="block text-xs font-medium text-slate-300 mb-1.5 uppercase tracking-wider">
+                Tipo
+              </label>
+              <input
+                type="text"
+                value={tipo}
+                onChange={(e) => setTipo(e.target.value)}
+                placeholder={
+                  capaActiva === "pp"
+                    ? "Ej. Infraestructura Hidráulica"
+                    : "Ej. Camino, Escuela, Parque..."
+                }
+                className="w-full bg-[#0f172a] border border-[#334155] text-white rounded-lg px-3 py-2.5 text-sm outline-none focus:border-blue-500 transition-colors placeholder:text-slate-600"
+              />
+            </div>
+          )}
 
           {/* Campos PP: Año */}
           {capaActiva === "pp" && (
@@ -461,6 +476,36 @@ const ObraModal = ({ onSaved }) => {
                   ))}
                 </datalist>
               </div>
+
+              {/* Zona Electoral y Referencia (solo Rural y Top 100) */}
+              {(capaActiva === "rural" || capaActiva === "top100") && (
+                <>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-300 mb-1.5 uppercase tracking-wider">
+                      Zona Electoral
+                    </label>
+                    <input
+                      type="text"
+                      value={zonaElectoral}
+                      onChange={(e) => setZonaElectoral(e.target.value)}
+                      placeholder="Ej. 39"
+                      className="w-full bg-[#0f172a] border border-[#334155] text-white rounded-lg px-3 py-2.5 text-sm outline-none focus:border-blue-500 transition-colors placeholder:text-slate-600"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-300 mb-1.5 uppercase tracking-wider">
+                      Referencia
+                    </label>
+                    <input
+                      type="text"
+                      value={referencia}
+                      onChange={(e) => setReferencia(e.target.value)}
+                      placeholder="Ej. Frente al parque central"
+                      className="w-full bg-[#0f172a] border border-[#334155] text-white rounded-lg px-3 py-2.5 text-sm outline-none focus:border-blue-500 transition-colors placeholder:text-slate-600"
+                    />
+                  </div>
+                </>
+              )}
 
               {/* Detalles */}
               <div>

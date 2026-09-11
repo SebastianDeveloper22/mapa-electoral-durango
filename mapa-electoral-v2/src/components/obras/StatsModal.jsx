@@ -253,7 +253,7 @@ const StatsModal = ({ open, onClose }) => {
                 items={extras.rural}
                 ejeSecundario="Por Distrito Local"
                 claveEje="distritoLocal"
-                onExportar={() => exportarCSV(extras.rural, "Reporte_Rural", ["distritoLocal", "seccion"])}
+                onExportar={() => exportarCSV(extras.rural, "Reporte_Rural", ["distritoLocal", "seccion", "zonaElectoral", "referencia"])}
               />
             )}
             {tabActiva === "top100" && (
@@ -262,7 +262,7 @@ const StatsModal = ({ open, onClose }) => {
                 items={extras.top100}
                 ejeSecundario="Por Distrito Local"
                 claveEje="distritoLocal"
-                onExportar={() => exportarCSV(extras.top100, "Reporte_Top100", ["distritoLocal", "seccion"])}
+                onExportar={() => exportarCSV(extras.top100, "Reporte_Top100", ["distritoLocal", "seccion", "zonaElectoral", "referencia"])}
               />
             )}
             {tabActiva === "general" && (

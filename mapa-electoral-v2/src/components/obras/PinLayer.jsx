@@ -159,12 +159,18 @@ const CAPA_LABELS = {
 };
 
 const crearHTMLPopupMarcador = (m, role) => {
-  const { id, capa, nombre, tipo, distritoLocal, seccion, zonaElectoral, referencia, detalles, coords, creadoPor, fechaCreacion } = m;
+  const { id, capa, nombre, tipo, distritoLocal, seccion, zonaElectoral, referencia, participacion, detalles, coords, creadoPor, fechaCreacion } = m;
   const googleUrl = `https://www.google.com/maps/dir/?api=1&destination=${coords.lat},${coords.lng}`;
   const canEdit = role === ROLES.ADMIN || role === ROLES.EDITOR;
   const botonesEdicion = canEdit
     ? `<button class="pin-btn pin-edit" data-id="${id}" data-capa="${capa}">✏️ Editar</button>
        <button class="pin-btn pin-delete" data-id="${id}" data-capa="${capa}">🗑️ Borrar</button>`
+    : "";
+  const nombreRow = nombre
+    ? `<div class="pin-popup-row"><span class="pin-key">Nombre</span><span class="pin-val">${nombre}</span></div>`
+    : "";
+  const tipoRow = tipo
+    ? `<div class="pin-popup-row"><span class="pin-key">Tipo</span><span class="pin-val">${tipo}</span></div>`
     : "";
   const dlRow = distritoLocal
     ? `<div class="pin-popup-row"><span class="pin-key">Distrito</span><span class="pin-val">${distritoLocal}</span></div>`
@@ -178,6 +184,9 @@ const crearHTMLPopupMarcador = (m, role) => {
   const refRow = referencia
     ? `<div class="pin-popup-row"><span class="pin-key">Referencia</span><span class="pin-val">${referencia}</span></div>`
     : "";
+  const partRow = participacion != null
+    ? `<div class="pin-popup-row"><span class="pin-key">Participación</span><span class="pin-val">${Number(participacion).toFixed(1)}%</span></div>`
+    : "";
   const detRow = detalles
     ? `<div class="pin-popup-row"><span class="pin-key">Detalles</span><span class="pin-val">${detalles}</span></div>`
     : "";
@@ -185,7 +194,7 @@ const crearHTMLPopupMarcador = (m, role) => {
     <div class="pin-popup">
       <div class="pin-popup-header">${CAPA_LABELS[capa] ?? capa}</div>
       <div class="pin-popup-body">
-        ${dlRow}${secRow}${zonaRow}${refRow}${detRow}
+        ${nombreRow}${tipoRow}${dlRow}${secRow}${zonaRow}${refRow}${partRow}${detRow}
       </div>
       <div class="pin-popup-actions">
         <a href="${googleUrl}" target="_blank" class="pin-btn pin-route">🗺️ Ruta</a>

@@ -11,7 +11,7 @@ export const TIPOS_MARCADOR = [
 ];
 
 // Distritos Locales de Durango capital
-export const DISTRITOS_LOCALES = ["DL 1", "DL 2", "DL 3", "DL 4", "DL 5", "DL 6"];
+export const DISTRITOS_LOCALES = ["DL 1", "DL 2", "DL 3", "DL 4", "DL 5", "DL 6", "DL 7", "DL 8", "DL 9", "DL 10", "DL 11", "DL 12", "DL 13"];
 
 // Secciones electorales (1–500) para combobox con autocomplete
 export const SECCIONES = Array.from({ length: 500 }, (_, i) => String(i + 1));
@@ -19,8 +19,8 @@ export const SECCIONES = Array.from({ length: 500 }, (_, i) => String(i + 1));
 // Colores por tipo de marcador
 export const COLORES_MARCADOR = {
   pp: null,        // PP usa colores por año (definidos en PinLayer)
-  rural: "#22c55e",
-  top100: "#f97316",
+  rural: "#13660E",
+  top100: "#1D217D",
   general: "#94a3b8",
 };
 

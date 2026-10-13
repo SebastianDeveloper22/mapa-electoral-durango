@@ -36,6 +36,7 @@ const MapPage = () => {
       <SearchBar />
       <MapControls
         isAdmin={isAdmin}
+        isLector={role === ROLES.LECTOR}
         onStatsClick={() => setStatsOpen(true)}
         onAdminClick={() => setAdminOpen(true)}
         onExportClick={() => setExportPDFOpen(true)}

@@ -1,65 +1,56 @@
 import { useState } from "react";
 import { signOut } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
-import maplibregl from "maplibre-gl";
 import { auth } from "../../services/firebase";
 import { useMapStore } from "../../store/mapStore";
+
+const API_KEY = import.meta.env.VITE_FIREBASE_API_KEY;
 
 const MapControls = ({
   onStatsClick,
   onAdminClick,
   onExportClick,
   isAdmin,
+  isLector,
 }) => {
   const { mapInstance, isSatellite, toggleSatellite } = useMapStore();
   const [streetViewActive, setStreetViewActive] = useState(false);
-  const [pegman, setPegman] = useState(null);
+  const [streetViewCoords, setStreetViewCoords] = useState(null);
   const navigate = useNavigate();
 
   const handleLogout = () => {
     signOut(auth).then(() => window.location.reload());
   };
 
-  const handleStreetView = () => {
-    if (!mapInstance) return;
-
-    if (pegman) {
-      pegman.remove();
-      setPegman(null);
-      setStreetViewActive(false);
+  const handleStreetViewToggle = () => {
+    if (streetViewCoords) {
+      setStreetViewCoords(null);
       return;
     }
+    setStreetViewActive((v) => !v);
+  };
 
-    setStreetViewActive(true);
-    const el = document.createElement("div");
-    el.innerText = "🧍";
-    el.style.cssText = "font-size:28px; cursor:grab; user-select:none;";
-
-    const centro = mapInstance.getCenter();
-    const marker = new maplibregl.Marker({ element: el, draggable: true })
-      .setLngLat([centro.lng, centro.lat])
-      .addTo(mapInstance);
-
-    marker.on("dragstart", () => {
-      el.innerText = "🚶‍♂️";
-    });
-    marker.on("dragend", () => {
-      el.innerText = "🧍";
-      const { lat, lng } = marker.getLngLat();
-      window.open(
-        `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lng}`,
-        "_blank",
-      );
-      marker.remove();
-      setPegman(null);
-      setStreetViewActive(false);
-    });
-
-    setPegman(marker);
+  const handleOverlayClick = (e) => {
+    if (!mapInstance) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const { lat, lng } = mapInstance.unproject([
+      e.clientX - rect.left,
+      e.clientY - rect.top,
+    ]);
+    setStreetViewCoords({ lat, lng });
+    setStreetViewActive(false);
   };
 
   return (
     <>
+      {/* Overlay captura de click para Street View */}
+      {streetViewActive && (
+        <div
+          className="absolute inset-0 z-25 cursor-crosshair"
+          onClick={handleOverlayClick}
+        />
+      )}
+
       {/* Stack superior derecha — logout + admin + estadísticas */}
       <div className="absolute top-4 right-4 z-20 flex flex-col gap-2">
         <button
@@ -78,12 +69,14 @@ const MapControls = ({
           </button>
         )}
 
-        <button
-          onClick={() => navigate("/electoral")}
-          className="flex items-center justify-center gap-1.5 bg-[#1e293b] border border-[#334155] text-slate-200 text-xs font-medium px-3 py-2 rounded-lg hover:bg-indigo-900/40 hover:border-indigo-500 hover:text-indigo-300 transition-colors cursor-pointer whitespace-nowrap"
-        >
-          🗳️ Electoral
-        </button>
+        {!isLector && (
+          <button
+            onClick={() => navigate("/electoral")}
+            className="flex items-center justify-center gap-1.5 bg-[#1e293b] border border-[#334155] text-slate-200 text-xs font-medium px-3 py-2 rounded-lg hover:bg-indigo-900/40 hover:border-indigo-500 hover:text-indigo-300 transition-colors cursor-pointer whitespace-nowrap"
+          >
+            🗳️ Electoral
+          </button>
+        )}
 
         <button
           onClick={onStatsClick}
@@ -92,13 +85,15 @@ const MapControls = ({
           📊 Estadísticas
         </button>
 
-        <button
-          onClick={onExportClick}
-          title="Exportar resultados a PDF"
-          className="flex items-center justify-center gap-1.5 bg-[#1e293b] border border-[#334155] text-slate-200 text-xs font-medium px-3 py-2 rounded-lg hover:bg-emerald-900/40 hover:border-emerald-500 hover:text-emerald-400 transition-colors cursor-pointer whitespace-nowrap"
-        >
-          📄 Exportar PDF
-        </button>
+        {!isLector && (
+          <button
+            onClick={onExportClick}
+            title="Exportar resultados a PDF"
+            className="flex items-center justify-center gap-1.5 bg-[#1e293b] border border-[#334155] text-slate-200 text-xs font-medium px-3 py-2 rounded-lg hover:bg-emerald-900/40 hover:border-emerald-500 hover:text-emerald-400 transition-colors cursor-pointer whitespace-nowrap"
+          >
+            📄 Exportar PDF
+          </button>
+        )}
       </div>
 
       {/* Controles de vista — fondo izquierda, encima del atributo del mapa */}
@@ -118,19 +113,61 @@ const MapControls = ({
 
         {/* Street View */}
         <button
-          onClick={handleStreetView}
+          onClick={handleStreetViewToggle}
           title={
-            streetViewActive ? "Cancelar Street View" : "Abrir Street View"
+            streetViewActive
+              ? "Cancelar — haz click en el mapa"
+              : streetViewCoords
+                ? "Cerrar Street View"
+                : "Abrir Street View"
           }
           className={`flex items-center gap-1.5 border text-xs font-semibold px-3 py-2 rounded-xl shadow-lg transition-colors cursor-pointer ${
             streetViewActive
-              ? "bg-red-600 border-red-400 text-white"
-              : "bg-[#1e293b]/95 border-[#334155] text-slate-200 hover:bg-[#334155]"
+              ? "bg-amber-600 border-amber-400 text-white animate-pulse"
+              : streetViewCoords
+                ? "bg-red-600 border-red-400 text-white"
+                : "bg-[#1e293b]/95 border-[#334155] text-slate-200 hover:bg-[#334155]"
           }`}
         >
-          🚶‍♂️ <span>{streetViewActive ? "Cancelar" : "Street View"}</span>
+          🚶‍♂️{" "}
+          <span>
+            {streetViewActive
+              ? "Click en el mapa..."
+              : streetViewCoords
+                ? "Cerrar"
+                : "Street View"}
+          </span>
         </button>
       </div>
+
+      {/* Panel Street View embebido */}
+      {streetViewCoords && (
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-[min(620px,calc(100vw-2rem))] h-[380px] z-30 flex flex-col rounded-2xl overflow-hidden shadow-[0_8px_40px_rgba(0,0,0,0.6)] border border-white/10 backdrop-blur-sm">
+          {/* Barra superior */}
+          <div className="flex items-center justify-between px-4 py-2.5 bg-[#0f172a]/95 border-b border-white/10 shrink-0">
+            <div className="flex items-center gap-2.5">
+              <span className="text-base leading-none">🚶‍♂️</span>
+              <div className="flex flex-col">
+                <span className="text-slate-100 text-xs font-semibold tracking-wide">Street View</span>
+                <span className="text-slate-500 text-[10px] font-mono mt-0.5">
+                  {streetViewCoords.lat.toFixed(5)}, {streetViewCoords.lng.toFixed(5)}
+                </span>
+              </div>
+            </div>
+            <button
+              onClick={() => setStreetViewCoords(null)}
+              className="flex items-center justify-center w-6 h-6 rounded-full bg-white/10 hover:bg-white/20 text-slate-400 hover:text-white text-xs transition-colors cursor-pointer"
+            >
+              ✕
+            </button>
+          </div>
+          <iframe
+            className="flex-1 w-full border-0"
+            src={`https://www.google.com/maps/embed/v1/streetview?key=${API_KEY}&location=${streetViewCoords.lat},${streetViewCoords.lng}&fov=80`}
+            allowFullScreen
+          />
+        </div>
+      )}
     </>
   );
 };

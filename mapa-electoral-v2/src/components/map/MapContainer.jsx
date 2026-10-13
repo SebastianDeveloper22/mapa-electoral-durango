@@ -19,44 +19,77 @@ const MapContainer = () => {
   useEffect(() => {
     if (!containerRef.current) return;
 
-    const map = new maplibregl.Map({
-      container: containerRef.current,
-      style: {
-        version: 8,
-        glyphs: "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
-        sources: {
-          "osm-base": {
-            type: "raster",
-            tiles: ["https://a.tile.openstreetmap.org/{z}/{x}/{y}.png"],
-            tileSize: 256,
-            attribution: "© OpenStreetMap",
-          },
+    const API_KEY = import.meta.env.VITE_FIREBASE_API_KEY;
+
+    const fetchSession = async (mapType) => {
+      const res = await fetch(
+        `https://tile.googleapis.com/v1/createSession?key=${API_KEY}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            mapType,
+            language: "es",
+            region: "MX",
+            ...(mapType === "satellite" && { layerTypes: ["layerRoadmap"] }),
+          }),
         },
-        layers: [{ id: "osm-tiles", type: "raster", source: "osm-base" }],
-      },
-      center: MAP_CENTER,
-      zoom: MAP_ZOOM,
-      preserveDrawingBuffer: true, // necesario para capturar canvas como imagen (PDF export)
-    });
+      );
+      const data = await res.json();
+      return data.session;
+    };
 
-    map.addControl(new maplibregl.NavigationControl(), "bottom-right");
+    let map;
+    let destroyed = false;
 
-    map.on("load", () => {
-      // Satélite (Esri)
-      map.addSource("esri-satellite", {
-        type: "raster",
-        tiles: [
-          "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-        ],
-        tileSize: 256,
-        attribution: "© Esri",
+    const init = async () => {
+      const [roadSession, satSession] = await Promise.all([
+        fetchSession("roadmap"),
+        fetchSession("satellite"),
+      ]);
+
+      if (destroyed) return;
+
+      map = new maplibregl.Map({
+        container: containerRef.current,
+        style: {
+          version: 8,
+          glyphs: "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
+          sources: {
+            "google-base": {
+              type: "raster",
+              tiles: [
+                `https://tile.googleapis.com/v1/2dtiles/{z}/{x}/{y}?session=${roadSession}&key=${API_KEY}`,
+              ],
+              tileSize: 256,
+              attribution: "© Google Maps",
+            },
+          },
+          layers: [{ id: "google-tiles", type: "raster", source: "google-base" }],
+        },
+        center: MAP_CENTER,
+        zoom: MAP_ZOOM,
+        preserveDrawingBuffer: true, // necesario para capturar canvas como imagen (PDF export)
       });
-      map.addLayer({
-        id: "satellite-tiles",
-        type: "raster",
-        source: "esri-satellite",
-        layout: { visibility: "none" },
-      });
+
+      map.addControl(new maplibregl.NavigationControl(), "bottom-right");
+
+      map.on("load", () => {
+        // Satélite (Google)
+        map.addSource("google-satellite", {
+          type: "raster",
+          tiles: [
+            `https://tile.googleapis.com/v1/2dtiles/{z}/{x}/{y}?session=${satSession}&key=${API_KEY}`,
+          ],
+          tileSize: 256,
+          attribution: "© Google Maps",
+        });
+        map.addLayer({
+          id: "satellite-tiles",
+          type: "raster",
+          source: "google-satellite",
+          layout: { visibility: "none" },
+        });
 
       // Teselas vectoriales locales
       map.addSource("cartografia-electoral", {
@@ -205,8 +238,14 @@ const MapContainer = () => {
 
       setMapInstance(map);
     });
+  };
 
-    return () => map.remove();
+  init();
+
+  return () => {
+    destroyed = true;
+    if (map) map.remove();
+  };
   }, []);
 
   // Sincronizar visibilidad de capas con el store
@@ -235,7 +274,7 @@ const MapContainer = () => {
     const map = useMapStore.getState().mapInstance;
     if (!map || !map.getLayer("satellite-tiles")) return;
     map.setLayoutProperty(
-      "osm-tiles",
+      "google-tiles",
       "visibility",
       isSatellite ? "none" : "visible",
     );

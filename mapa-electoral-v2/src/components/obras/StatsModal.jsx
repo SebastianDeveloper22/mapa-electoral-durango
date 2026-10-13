@@ -41,9 +41,13 @@ const colorFromStr = (s) => {
 const normalizar = (t) =>
   (t || "").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
+// Colores por Distrito Local (DL 1–6): azul, cian, esmeralda, violeta, amarillo, rosa
+const COLORES_DL = ["#3b82f6", "#06b6d4", "#10b981", "#8b5cf6", "#eab308", "#ec4899"];
+const colorDL = (i) => COLORES_DL[i % COLORES_DL.length];
+
 // ── Gráficas por tipo (dona) + eje secundario (barras) ──────────────────────
 
-const useGraficas = (open, items, ejeSecundario, claveEje) => {
+const useGraficas = (open, items, ejeSecundario, claveEje, modoParticipacion = false) => {
   const donaRef = useRef(null);
   const barraRef = useRef(null);
   const donaInst = useRef(null);
@@ -52,48 +56,108 @@ const useGraficas = (open, items, ejeSecundario, claveEje) => {
   useEffect(() => {
     if (!open || !items.length) return;
 
-    const porTipoKey = {};
-    const tipoVisual = {};
-    const porEje = {};
-
-    items.forEach((item) => {
-      const tipoOrig = (item.tipo || "Sin Especificar").trim();
-      const key = normalizar(tipoOrig);
-      porTipoKey[key] = (porTipoKey[key] || 0) + 1;
-      if (!tipoVisual[key])
-        tipoVisual[key] = tipoOrig.charAt(0).toUpperCase() + tipoOrig.slice(1);
-
-      const ejeVal = item[claveEje] || "Sin dato";
-      porEje[ejeVal] = (porEje[ejeVal] || 0) + 1;
-    });
-
     donaInst.current?.destroy();
     barraInst.current?.destroy();
 
-    const tipoKeys = Object.keys(porTipoKey);
-    const tipoColors = tipoKeys.map(colorFromStr);
+    if (modoParticipacion) {
+      // ── Gráfica 1: Promedio de participación por DL ──
+      const sumaPorDL = {};
+      const contPorDL = {};
+      items.forEach((item) => {
+        const dl = item.distritoLocal || "Sin dato";
+        if (item.participacion != null) {
+          sumaPorDL[dl] = (sumaPorDL[dl] || 0) + Number(item.participacion);
+          contPorDL[dl] = (contPorDL[dl] || 0) + 1;
+        }
+      });
+      const dlKeys = Object.keys(sumaPorDL).sort();
+      const promedios = dlKeys.map((dl) => +(sumaPorDL[dl] / contPorDL[dl]).toFixed(1));
 
-    donaInst.current = new Chart(donaRef.current, {
-      type: "doughnut",
-      data: {
-        labels: tipoKeys.map((k) => tipoVisual[k]),
-        datasets: [{ data: tipoKeys.map((k) => porTipoKey[k]), backgroundColor: tipoColors, borderWidth: 0, hoverOffset: 4 }],
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          title: { display: true, text: "Por Tipo", color: "#94a3b8", font: { size: 11 } },
+      donaInst.current = new Chart(donaRef.current, {
+        type: "bar",
+        data: {
+          labels: dlKeys,
+          datasets: [{ label: "Participación Promedio (%)", data: promedios, backgroundColor: dlKeys.map((_, i) => colorDL(i)), borderRadius: 4 }],
         },
-      },
-    });
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            title: { display: true, text: "Participación Promedio por DL", color: "#94a3b8", font: { size: 11 } },
+          },
+          scales: {
+            y: { beginAtZero: true, max: 100, ticks: { color: "#94a3b8", font: { size: 10 }, callback: (v) => v + "%" }, grid: { color: "rgba(255,255,255,0.05)" } },
+            x: { ticks: { color: "#e2e8f0", font: { weight: "bold", size: 10 } }, grid: { display: false } },
+          },
+        },
+      });
 
+      const legendEl = document.getElementById("stats-legend");
+      if (legendEl) {
+        legendEl.innerHTML = dlKeys.length
+          ? dlKeys.map((dl, i) => `
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">
+              <div style="min-width:10px;height:10px;border-radius:2px;background:${colorDL(i)}"></div>
+              <span style="flex:1;font-size:11px;color:#e2e8f0;">${dl}</span>
+              <span style="color:#94a3b8;font-size:11px;font-weight:bold;">${promedios[i]}%</span>
+            </div>
+          `).join("")
+          : `<p style="font-size:11px;color:#64748b;">Sin datos de participación.</p>`;
+      }
+    } else {
+      // ── Gráfica 1: Dona por tipo ──
+      const porTipoKey = {};
+      const tipoVisual = {};
+      items.forEach((item) => {
+        const tipoOrig = (item.tipo || "Sin Especificar").trim();
+        const key = normalizar(tipoOrig);
+        porTipoKey[key] = (porTipoKey[key] || 0) + 1;
+        if (!tipoVisual[key])
+          tipoVisual[key] = tipoOrig.charAt(0).toUpperCase() + tipoOrig.slice(1);
+      });
+
+      const tipoKeys = Object.keys(porTipoKey);
+      const tipoColors = tipoKeys.map(colorFromStr);
+
+      donaInst.current = new Chart(donaRef.current, {
+        type: "doughnut",
+        data: {
+          labels: tipoKeys.map((k) => tipoVisual[k]),
+          datasets: [{ data: tipoKeys.map((k) => porTipoKey[k]), backgroundColor: tipoColors, borderWidth: 0, hoverOffset: 4 }],
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            title: { display: true, text: "Por Tipo", color: "#94a3b8", font: { size: 11 } },
+          },
+        },
+      });
+
+      const legendEl = document.getElementById("stats-legend");
+      if (legendEl) {
+        legendEl.innerHTML = tipoKeys.map((k, i) => `
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">
+            <div style="min-width:10px;height:10px;border-radius:2px;background:${tipoColors[i]}"></div>
+            <span style="flex:1;font-size:11px;color:#e2e8f0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${tipoVisual[k]}</span>
+            <span style="color:#94a3b8;font-size:11px;font-weight:bold;">${porTipoKey[k]}</span>
+          </div>
+        `).join("");
+      }
+    }
+
+    // ── Gráfica 2: Conteo por eje secundario (siempre) ──
+    const porEje = {};
+    items.forEach((item) => {
+      const ejeVal = item[claveEje] || "Sin dato";
+      porEje[ejeVal] = (porEje[ejeVal] || 0) + 1;
+    });
     const ejeOrdenado = Object.keys(porEje).sort();
     barraInst.current = new Chart(barraRef.current, {
       type: "bar",
       data: {
         labels: ejeOrdenado,
-        datasets: [{ label: ejeSecundario, data: ejeOrdenado.map((k) => porEje[k]), backgroundColor: "#3b82f6", borderRadius: 4 }],
+        datasets: [{ label: ejeSecundario, data: ejeOrdenado.map((k) => porEje[k]), backgroundColor: ejeOrdenado.map((_, i) => colorDL(i)), borderRadius: 4 }],
       },
       options: {
         responsive: true, maintainAspectRatio: false,
@@ -108,17 +172,6 @@ const useGraficas = (open, items, ejeSecundario, claveEje) => {
       },
     });
 
-    const legendEl = document.getElementById("stats-legend");
-    if (legendEl) {
-      legendEl.innerHTML = tipoKeys.map((k, i) => `
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">
-          <div style="min-width:10px;height:10px;border-radius:2px;background:${tipoColors[i]}"></div>
-          <span style="flex:1;font-size:11px;color:#e2e8f0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${tipoVisual[k]}</span>
-          <span style="color:#94a3b8;font-size:11px;font-weight:bold;">${porTipoKey[k]}</span>
-        </div>
-      `).join("");
-    }
-
     return () => { donaInst.current?.destroy(); barraInst.current?.destroy(); };
   }, [open, items]);
 
@@ -127,8 +180,8 @@ const useGraficas = (open, items, ejeSecundario, claveEje) => {
 
 // ── Panel de una pestaña ──────────────────────────────────────────────────────
 
-const TabPanel = ({ open, items, ejeSecundario, claveEje, onExportar }) => {
-  const { donaRef, barraRef } = useGraficas(open, items, ejeSecundario, claveEje);
+const TabPanel = ({ open, items, ejeSecundario, claveEje, modoParticipacion, onExportar }) => {
+  const { donaRef, barraRef } = useGraficas(open, items, ejeSecundario, claveEje, modoParticipacion);
 
   if (!open) return null;
 
@@ -253,7 +306,8 @@ const StatsModal = ({ open, onClose }) => {
                 items={extras.rural}
                 ejeSecundario="Por Distrito Local"
                 claveEje="distritoLocal"
-                onExportar={() => exportarCSV(extras.rural, "Reporte_Rural", ["distritoLocal", "seccion", "zonaElectoral", "referencia"])}
+                modoParticipacion
+                onExportar={() => exportarCSV(extras.rural, "Reporte_Rural", ["distritoLocal", "seccion", "zonaElectoral", "referencia", "participacion"])}
               />
             )}
             {tabActiva === "top100" && (
@@ -262,7 +316,8 @@ const StatsModal = ({ open, onClose }) => {
                 items={extras.top100}
                 ejeSecundario="Por Distrito Local"
                 claveEje="distritoLocal"
-                onExportar={() => exportarCSV(extras.top100, "Reporte_Top100", ["distritoLocal", "seccion", "zonaElectoral", "referencia"])}
+                modoParticipacion
+                onExportar={() => exportarCSV(extras.top100, "Reporte_Top100", ["distritoLocal", "seccion", "zonaElectoral", "referencia", "participacion"])}
               />
             )}
             {tabActiva === "general" && (

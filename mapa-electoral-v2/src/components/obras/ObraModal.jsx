@@ -184,6 +184,7 @@ const ObraModal = ({ onSaved }) => {
   const [seccion, setSeccion] = useState("");
   const [zonaElectoral, setZonaElectoral] = useState("");
   const [referencia, setReferencia] = useState("");
+  const [participacion, setParticipacion] = useState("");
   const [detalles, setDetalles] = useState("");
 
   const [saving, setSaving] = useState(false);
@@ -201,6 +202,7 @@ const ObraModal = ({ onSaved }) => {
       setSeccion("");
       setZonaElectoral("");
       setReferencia("");
+      setParticipacion("");
       setDetalles("");
       imagen.reset();
     }
@@ -216,6 +218,7 @@ const ObraModal = ({ onSaved }) => {
       seccion: sec,
       zonaElectoral: zona,
       referencia: ref,
+      participacion: part,
       detalles: det,
       capa: c,
       pinImageUrl,
@@ -229,6 +232,7 @@ const ObraModal = ({ onSaved }) => {
       setSeccion(sec ?? "");
       setZonaElectoral(zona ?? "");
       setReferencia(ref ?? "");
+      setParticipacion(part != null ? String(part) : "");
       setDetalles(det ?? "");
       imagen.cargar({ pinImageUrl, pinImagePath });
     };
@@ -304,6 +308,7 @@ const ObraModal = ({ onSaved }) => {
           seccion: seccion || null,
           zonaElectoral: (capa === "rural" || capa === "top100") ? (zonaElectoral || null) : null,
           referencia: (capa === "rural" || capa === "top100") ? (referencia || null) : null,
+          participacion: (capa === "rural" || capa === "top100") ? (parseFloat(participacion) || null) : null,
           detalles: detalles || null,
           coords: coordsTemporales,
           userEmail,
@@ -328,7 +333,7 @@ const ObraModal = ({ onSaved }) => {
       setSaving(false);
     }
   }, [
-    capa, nombre, tipo, anio, distritoLocal, seccion, detalles,
+    capa, nombre, tipo, anio, distritoLocal, seccion, zonaElectoral, referencia, participacion, detalles,
     imagen, editandoId, coordsTemporales, user, toast, closeModal, onSaved,
   ]);
 
@@ -501,6 +506,21 @@ const ObraModal = ({ onSaved }) => {
                       value={referencia}
                       onChange={(e) => setReferencia(e.target.value)}
                       placeholder="Ej. Frente al parque central"
+                      className="w-full bg-[#0f172a] border border-[#334155] text-white rounded-lg px-3 py-2.5 text-sm outline-none focus:border-blue-500 transition-colors placeholder:text-slate-600"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-300 mb-1.5 uppercase tracking-wider">
+                      Participación <span className="text-slate-500 normal-case">(%)</span>
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.1"
+                      value={participacion}
+                      onChange={(e) => setParticipacion(e.target.value)}
+                      placeholder="Ej. 63.4"
                       className="w-full bg-[#0f172a] border border-[#334155] text-white rounded-lg px-3 py-2.5 text-sm outline-none focus:border-blue-500 transition-colors placeholder:text-slate-600"
                     />
                   </div>

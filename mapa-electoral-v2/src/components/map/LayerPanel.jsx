@@ -23,7 +23,7 @@ const CAPA_LABELS = {
 const MARCADORES_EXTRA = [
   { key: "rural",   label: "Rural",          conDL: true },
   { key: "top100",  label: "Top 100 Urbano", conDL: true },
-  { key: "general", label: "General",        conDL: false },
+  { key: "general", label: "Espectaculares",  conDL: false },
 ];
 
 const LayerPanel = () => {

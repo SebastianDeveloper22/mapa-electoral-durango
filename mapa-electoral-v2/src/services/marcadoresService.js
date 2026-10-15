@@ -8,7 +8,7 @@ import {
   getDoc,
 } from "firebase/firestore";
 import { db } from "./firebase";
-import { subirImagenPin, eliminarImagenPin } from "./obrasService";
+import { subirImagenPin, eliminarImagenPin, subirFoto } from "./obrasService";
 
 const PAPELERA = "papelera";
 
@@ -58,10 +58,13 @@ export const createMarcador = async ({
   referencia,
   participacion,
   detalles,
+  pinColor,
   coords,
   userEmail,
   pinImageUrl,
   pinImagePath,
+  fotoUrl,
+  fotoPath,
 }) => {
   const col = COLECCIONES[capa];
   if (!col) throw new Error(`Capa desconocida: ${capa}`);
@@ -74,11 +77,14 @@ export const createMarcador = async ({
     referencia: referencia ?? null,
     participacion: participacion ?? null,
     detalles: detalles ?? null,
+    pinColor: pinColor ?? null,
     coords: { lat: coords.lat, lng: coords.lng },
     creadoPor: userEmail,
     fechaCreacion: fechaFormato(),
     pinImageUrl: pinImageUrl ?? null,
     pinImagePath: pinImagePath ?? null,
+    fotoUrl: fotoUrl ?? null,
+    fotoPath: fotoPath ?? null,
   });
 };
 
@@ -95,10 +101,13 @@ export const updateMarcador = async ({
   referencia,
   participacion,
   detalles,
+  pinColor,
   coords,
   userEmail,
   pinImageUrl,
   pinImagePath,
+  fotoUrl,
+  fotoPath,
 }) => {
   const col = COLECCIONES[capa];
   if (!col) throw new Error(`Capa desconocida: ${capa}`);
@@ -111,11 +120,14 @@ export const updateMarcador = async ({
     referencia: referencia ?? null,
     participacion: participacion ?? null,
     detalles: detalles ?? null,
+    pinColor: pinColor ?? null,
     coords: { lat: coords.lat, lng: coords.lng },
     ultimaEdicionPor: userEmail,
     fechaEdicion: fechaFormato(),
     pinImageUrl: pinImageUrl ?? null,
     pinImagePath: pinImagePath ?? null,
+    fotoUrl: fotoUrl ?? null,
+    fotoPath: fotoPath ?? null,
   });
 };
 
@@ -129,6 +141,7 @@ export const deleteMarcador = async (capa, id, userEmail) => {
   if (snap.exists()) {
     const data = snap.data();
     if (data.pinImagePath) await eliminarImagenPin(data.pinImagePath);
+    if (data.fotoPath) await eliminarImagenPin(data.fotoPath);
     await addDoc(collection(db, PAPELERA), {
       ...data,
       capa,
@@ -140,4 +153,4 @@ export const deleteMarcador = async (capa, id, userEmail) => {
   await deleteDoc(ref_);
 };
 
-export { subirImagenPin, eliminarImagenPin };
+export { subirImagenPin, eliminarImagenPin, subirFoto };

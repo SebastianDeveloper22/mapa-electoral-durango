@@ -7,7 +7,7 @@ export const TIPOS_MARCADOR = [
   { value: "pp", label: "Presupuesto Participativo" },
   { value: "rural", label: "Rural" },
   { value: "top100", label: "Top 100 Urbano" },
-  { value: "general", label: "General" },
+  { value: "general", label: "Espectaculares" },
 ];
 
 // Distritos Locales de Durango capital

@@ -126,25 +126,41 @@ const crearElementoPinImagen = (imageUrl) => {
   return el;
 };
 
+// ── Lightbox ─────────────────────────────────────────────────────────────────
+
+const mostrarLightbox = (url) => {
+  document.getElementById("pin-lightbox")?.remove();
+  const overlay = document.createElement("div");
+  overlay.id = "pin-lightbox";
+  overlay.style.cssText = "position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.88);display:flex;align-items:center;justify-content:center;cursor:zoom-out;";
+  overlay.innerHTML = `<img src="${url}" style="max-width:90vw;max-height:90vh;object-fit:contain;border-radius:10px;box-shadow:0 8px 40px rgba(0,0,0,0.6);" draggable="false" />`;
+  overlay.addEventListener("click", () => overlay.remove());
+  document.body.appendChild(overlay);
+};
+
 // ── Popups ──────────────────────────────────────────────────────────────────
 
 const crearHTMLPopupPP = (obra, role) => {
-  const { id, nombre, tipo, anio, coords, creadoPor, fechaCreacion } = obra;
-  const googleUrl = `https://www.google.com/maps/dir/?api=1&destination=${coords.lat},${coords.lng}`;
+  const { id, nombre, tipo, anio, coords, creadoPor, fechaCreacion, fotoUrl } = obra;
+  const googleUrl = `https://www.google.com/maps?q=${coords.lat},${coords.lng}`;
   const canEdit = role === ROLES.ADMIN || role === ROLES.EDITOR;
   const botonesEdicion = canEdit
     ? `<button class="pin-btn pin-edit" data-id="${id}" data-capa="pp">✏️ Editar</button>
        <button class="pin-btn pin-delete" data-id="${id}" data-capa="pp">🗑️ Borrar</button>`
     : "";
+  const fotoThumb = fotoUrl
+    ? `<img src="${fotoUrl}" class="pin-foto-thumb" data-foto="${fotoUrl}" style="width:100%;height:90px;object-fit:cover;border-radius:8px;margin-bottom:8px;cursor:zoom-in;display:block;" />`
+    : "";
   return `
     <div class="pin-popup">
       <div class="pin-popup-header">Obra P.P. ${anio}</div>
+      ${fotoThumb}
       <div class="pin-popup-body">
         <div class="pin-popup-row"><span class="pin-key">Nombre</span><span class="pin-val">${nombre}</span></div>
         <div class="pin-popup-row"><span class="pin-key">Intervención</span><span class="pin-val">${tipo}</span></div>
       </div>
       <div class="pin-popup-actions">
-        <a href="${googleUrl}" target="_blank" class="pin-btn pin-route">🗺️ Ruta</a>
+        <a href="${googleUrl}" target="_blank" class="pin-btn pin-route">🗺️ Ubicación</a>
         ${botonesEdicion}
       </div>
       <div class="pin-traceability">Registrado por <span>${creadoPor || "Sistema"}</span><br>${fechaCreacion || ""}</div>
@@ -155,12 +171,12 @@ const crearHTMLPopupPP = (obra, role) => {
 const CAPA_LABELS = {
   rural: "Rural",
   top100: "Top 100 Urbano",
-  general: "General",
+  general: "Espectaculares",
 };
 
 const crearHTMLPopupMarcador = (m, role) => {
-  const { id, capa, nombre, tipo, distritoLocal, seccion, zonaElectoral, referencia, participacion, detalles, coords, creadoPor, fechaCreacion } = m;
-  const googleUrl = `https://www.google.com/maps/dir/?api=1&destination=${coords.lat},${coords.lng}`;
+  const { id, capa, nombre, tipo, distritoLocal, seccion, zonaElectoral, referencia, participacion, detalles, coords, creadoPor, fechaCreacion, fotoUrl } = m;
+  const googleUrl = `https://www.google.com/maps?q=${coords.lat},${coords.lng}`;
   const canEdit = role === ROLES.ADMIN || role === ROLES.EDITOR;
   const botonesEdicion = canEdit
     ? `<button class="pin-btn pin-edit" data-id="${id}" data-capa="${capa}">✏️ Editar</button>
@@ -190,14 +206,18 @@ const crearHTMLPopupMarcador = (m, role) => {
   const detRow = detalles
     ? `<div class="pin-popup-row"><span class="pin-key">Detalles</span><span class="pin-val">${detalles}</span></div>`
     : "";
+  const fotoThumb = fotoUrl
+    ? `<img src="${fotoUrl}" class="pin-foto-thumb" data-foto="${fotoUrl}" style="width:100%;height:90px;object-fit:cover;border-radius:8px;margin-bottom:8px;cursor:zoom-in;display:block;" />`
+    : "";
   return `
     <div class="pin-popup">
       <div class="pin-popup-header">${CAPA_LABELS[capa] ?? capa}</div>
+      ${fotoThumb}
       <div class="pin-popup-body">
         ${nombreRow}${tipoRow}${dlRow}${secRow}${zonaRow}${refRow}${partRow}${detRow}
       </div>
       <div class="pin-popup-actions">
-        <a href="${googleUrl}" target="_blank" class="pin-btn pin-route">🗺️ Ruta</a>
+        <a href="${googleUrl}" target="_blank" class="pin-btn pin-route">🗺️ Ubicación</a>
         ${botonesEdicion}
       </div>
       <div class="pin-traceability">Registrado por <span>${creadoPor || "Sistema"}</span><br>${fechaCreacion || ""}</div>
@@ -269,6 +289,8 @@ const PinLayer = ({ reloadTrigger, onReload }) => {
           let pinColor;
           if (capa === "pp") {
             pinColor = PIN_COLORS_ANIO[anio] || PIN_DEFAULT;
+          } else if (capa === "general") {
+            pinColor = item.pinColor || PIN_DEFAULT;
           } else {
             pinColor = COLORES_MARCADOR[capa] || PIN_DEFAULT;
           }
@@ -352,6 +374,12 @@ const PinLayer = ({ reloadTrigger, onReload }) => {
   // ── Eventos de editar/borrar desde popups ─────────────────────────────────
   useEffect(() => {
     const handler = async (e) => {
+      // FOTO LIGHTBOX (debe ir antes de la guarda de id/capa)
+      if (e.target.classList.contains("pin-foto-thumb")) {
+        mostrarLightbox(e.target.dataset.foto);
+        return;
+      }
+
       const id = e.target.dataset?.id;
       const capa = e.target.dataset?.capa;
       if (!id || !capa) return;
@@ -394,8 +422,11 @@ const PinLayer = ({ reloadTrigger, onReload }) => {
           referencia: item.referencia ?? "",
           detalles: item.detalles ?? "",
           capa,
+          pinColor: item.pinColor ?? null,
           pinImageUrl: item.pinImageUrl ?? null,
           pinImagePath: item.pinImagePath ?? null,
+          fotoUrl: item.fotoUrl ?? null,
+          fotoPath: item.fotoPath ?? null,
         });
 
         openModalEditar(id, coords, capa);

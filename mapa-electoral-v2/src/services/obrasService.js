@@ -42,6 +42,15 @@ export const subirImagenPin = async (archivo) => {
   return { url, path };
 };
 
+export const subirFoto = async (archivo) => {
+  const ext = archivo.name.split(".").pop() || "jpg";
+  const path = `obras/pins/foto_${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+  const storageRef = ref(storage, path);
+  await uploadBytes(storageRef, archivo);
+  const url = await getDownloadURL(storageRef);
+  return { url, path };
+};
+
 /**
  * Elimina una imagen de Storage por su path.
  * No lanza error si el archivo ya no existe.
@@ -70,6 +79,8 @@ export const createObra = async ({
   userEmail,
   pinImageUrl,
   pinImagePath,
+  fotoUrl,
+  fotoPath,
 }) => {
   await addDoc(collection(db, COL), {
     nombre,
@@ -80,6 +91,8 @@ export const createObra = async ({
     fechaCreacion: fechaFormato(),
     pinImageUrl: pinImageUrl ?? null,
     pinImagePath: pinImagePath ?? null,
+    fotoUrl: fotoUrl ?? null,
+    fotoPath: fotoPath ?? null,
   });
 };
 
@@ -92,6 +105,8 @@ export const updateObra = async ({
   userEmail,
   pinImageUrl,
   pinImagePath,
+  fotoUrl,
+  fotoPath,
 }) => {
   await updateDoc(doc(db, COL, id), {
     nombre,
@@ -102,6 +117,8 @@ export const updateObra = async ({
     fechaEdicion: fechaFormato(),
     pinImageUrl: pinImageUrl ?? null,
     pinImagePath: pinImagePath ?? null,
+    fotoUrl: fotoUrl ?? null,
+    fotoPath: fotoPath ?? null,
   });
 };
 
@@ -110,8 +127,8 @@ export const deleteObra = async (id, userEmail) => {
   const snap = await getDoc(ref_);
   if (snap.exists()) {
     const data = snap.data();
-    // Eliminar imagen de Storage si existe
     if (data.pinImagePath) await eliminarImagenPin(data.pinImagePath);
+    if (data.fotoPath) await eliminarImagenPin(data.fotoPath);
     // Mover a papelera
     await addDoc(collection(db, PAPELERA), {
       ...data,

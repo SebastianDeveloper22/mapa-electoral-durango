@@ -24,7 +24,7 @@ const TABS = [
   { key: "pp",      label: "PP" },
   { key: "rural",   label: "Rural" },
   { key: "top100",  label: "Top 100" },
-  { key: "general", label: "General" },
+  { key: "general", label: "Espectaculares" },
 ];
 
 const strHash = (s) => {
@@ -326,7 +326,7 @@ const StatsModal = ({ open, onClose }) => {
                 items={extras.general}
                 ejeSecundario="Por Tipo"
                 claveEje="tipo"
-                onExportar={() => exportarCSV(extras.general, "Reporte_General")}
+                onExportar={() => exportarCSV(extras.general, "Reporte_Espectaculares", ["distritoLocal", "seccion", "detalles"])}
               />
             )}
           </>

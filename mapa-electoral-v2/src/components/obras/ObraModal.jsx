@@ -9,6 +9,7 @@ import {
   updateObra,
   subirImagenPin,
   eliminarImagenPin,
+  subirFoto,
 } from "../../services/obrasService";
 import {
   createMarcador,
@@ -85,7 +86,7 @@ const useImagen = () => {
 
 // ── Componente dropzone de imagen ───────────────────────────────────────────
 
-const ImagenDropzone = ({ previewActivo, onDrop, onQuitar, onProcesar }) => {
+const ImagenDropzone = ({ previewActivo, onDrop, onQuitar, onProcesar, label = "Imagen del pin", sublabel = "Esta imagen reemplazará al pin de color en el mapa." }) => {
   const [dragOver, setDragOver] = useState(false);
   const inputRef = useRef(null);
 
@@ -98,7 +99,7 @@ const ImagenDropzone = ({ previewActivo, onDrop, onQuitar, onProcesar }) => {
   return (
     <div>
       <label className="block text-xs font-medium text-slate-300 mb-1.5 uppercase tracking-wider">
-        Imagen del pin{" "}
+        {label}{" "}
         <span className="text-slate-500 normal-case font-normal">
           (PNG, JPG — opcional)
         </span>
@@ -156,7 +157,7 @@ const ImagenDropzone = ({ previewActivo, onDrop, onQuitar, onProcesar }) => {
 
       {previewActivo && (
         <p className="text-slate-500 text-xs mt-1.5 text-center">
-          Esta imagen reemplazará al pin de color en el mapa.
+          {sublabel}
         </p>
       )}
     </div>
@@ -187,8 +188,12 @@ const ObraModal = ({ onSaved }) => {
   const [participacion, setParticipacion] = useState("");
   const [detalles, setDetalles] = useState("");
 
+  // Color individual (solo Espectaculares)
+  const [pinColor, setPinColor] = useState("#94a3b8");
+
   const [saving, setSaving] = useState(false);
   const imagen = useImagen();
+  const foto = useImagen();
 
   // ── Prellenado al abrir ────────────────────────────────────────────────────
   useEffect(() => {
@@ -204,7 +209,9 @@ const ObraModal = ({ onSaved }) => {
       setReferencia("");
       setParticipacion("");
       setDetalles("");
+      setPinColor("#94a3b8");
       imagen.reset();
+      foto.reset();
     }
   }, [modalOpen, editandoId]);
 
@@ -221,8 +228,11 @@ const ObraModal = ({ onSaved }) => {
       participacion: part,
       detalles: det,
       capa: c,
+      pinColor: pc,
       pinImageUrl,
       pinImagePath,
+      fotoUrl,
+      fotoPath,
     }) => {
       setCapa(c ?? "pp");
       setNombre(n ?? "");
@@ -234,7 +244,9 @@ const ObraModal = ({ onSaved }) => {
       setReferencia(ref ?? "");
       setParticipacion(part != null ? String(part) : "");
       setDetalles(det ?? "");
+      setPinColor(pc ?? "#94a3b8");
       imagen.cargar({ pinImageUrl, pinImagePath });
+      foto.cargar({ pinImageUrl: fotoUrl, pinImagePath: fotoPath });
     };
     return () => { delete window.__llenarFormularioObra; };
   }, []);
@@ -272,6 +284,25 @@ const ObraModal = ({ onSaved }) => {
         pinImagePath = path;
       }
 
+      // ── Foto del marcador ──
+      let fotoUrl = foto.imagenUrlActual ?? null;
+      let fotoPath = foto.imagenPathActual ?? null;
+
+      if (foto.imagenEliminada && foto.imagenPathActual) {
+        await eliminarImagenPin(foto.imagenPathActual);
+        fotoUrl = null;
+        fotoPath = null;
+      }
+
+      if (foto.imagenArchivo) {
+        if (foto.imagenPathActual && !foto.imagenEliminada) {
+          await eliminarImagenPin(foto.imagenPathActual);
+        }
+        const { url, path } = await subirFoto(foto.imagenArchivo);
+        fotoUrl = url;
+        fotoPath = path;
+      }
+
       if (capa === "pp") {
         // ── Obras PP ──
         if (editandoId) {
@@ -284,6 +315,8 @@ const ObraModal = ({ onSaved }) => {
             userEmail,
             pinImageUrl,
             pinImagePath,
+            fotoUrl,
+            fotoPath,
           });
           toast("Obra actualizada correctamente.", "success");
         } else {
@@ -295,6 +328,8 @@ const ObraModal = ({ onSaved }) => {
             userEmail,
             pinImageUrl,
             pinImagePath,
+            fotoUrl,
+            fotoPath,
           });
           toast("Obra registrada correctamente.", "success");
         }
@@ -310,10 +345,13 @@ const ObraModal = ({ onSaved }) => {
           referencia: (capa === "rural" || capa === "top100") ? (referencia || null) : null,
           participacion: (capa === "rural" || capa === "top100") ? (parseFloat(participacion) || null) : null,
           detalles: detalles || null,
+          pinColor: capa === "general" ? pinColor : null,
           coords: coordsTemporales,
           userEmail,
           pinImageUrl,
           pinImagePath,
+          fotoUrl,
+          fotoPath,
         };
         if (editandoId) {
           await updateMarcador({ ...payload, id: editandoId });
@@ -334,7 +372,7 @@ const ObraModal = ({ onSaved }) => {
     }
   }, [
     capa, nombre, tipo, anio, distritoLocal, seccion, zonaElectoral, referencia, participacion, detalles,
-    imagen, editandoId, coordsTemporales, user, toast, closeModal, onSaved,
+    pinColor, imagen, foto, editandoId, coordsTemporales, user, toast, closeModal, onSaved,
   ]);
 
   if (!modalOpen) return null;
@@ -540,6 +578,32 @@ const ObraModal = ({ onSaved }) => {
                   className="w-full bg-[#0f172a] border border-[#334155] text-white rounded-lg px-3 py-2.5 text-sm outline-none focus:border-blue-500 transition-colors placeholder:text-slate-600 resize-none"
                 />
               </div>
+
+              {/* Color del pin (solo Espectaculares) */}
+              {capaActiva === "general" && (
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1.5 uppercase tracking-wider">
+                    Color del Pin
+                  </label>
+                  <div className="flex items-center gap-2 bg-[#0f172a] border border-[#334155] rounded-lg px-3 py-2">
+                    <input
+                      type="color"
+                      value={pinColor}
+                      onChange={(e) => setPinColor(e.target.value)}
+                      className="w-8 h-8 rounded cursor-pointer border-0 bg-transparent p-0 shrink-0"
+                      style={{ appearance: "none", WebkitAppearance: "none" }}
+                    />
+                    <span className="text-slate-300 text-sm font-mono flex-1">{pinColor}</span>
+                    <button
+                      type="button"
+                      onClick={() => setPinColor("#94a3b8")}
+                      className="text-slate-500 hover:text-slate-300 text-xs transition-colors cursor-pointer shrink-0"
+                    >
+                      Reset
+                    </button>
+                  </div>
+                </div>
+              )}
             </>
           )}
 
@@ -549,6 +613,16 @@ const ObraModal = ({ onSaved }) => {
             onDrop={(file) => imagen.procesar(file, toast)}
             onQuitar={(ref) => imagen.quitar(ref)}
             onProcesar={(file) => imagen.procesar(file, toast)}
+          />
+
+          {/* Foto del marcador (aparece en popup) */}
+          <ImagenDropzone
+            label="Foto del marcador"
+            sublabel="Esta foto aparecerá al hacer clic en el marcador del mapa."
+            previewActivo={foto.previewActivo}
+            onDrop={(file) => foto.procesar(file, toast)}
+            onQuitar={(ref) => foto.quitar(ref)}
+            onProcesar={(file) => foto.procesar(file, toast)}
           />
         </div>
 

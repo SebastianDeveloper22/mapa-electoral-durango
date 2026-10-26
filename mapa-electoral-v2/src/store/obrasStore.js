@@ -4,6 +4,15 @@ export const useObrasStore = create((set) => ({
   obras: [],
   setObras: (obras) => set({ obras }),
 
+  // Datos de marcadores adicionales cargados por PinLayer (evita doble fetch en StatsModal)
+  // null = todavía no cargado; objeto = ya cargado (aunque esté vacío)
+  extras: null,
+  setExtras: (extras) => set({ extras }),
+
+  // Datos del marcador que se está editando (reemplaza window.__llenarFormularioObra)
+  marcadorEditando: null,
+  setMarcadorEditando: (data) => set({ marcadorEditando: data }),
+
   // Modal de nueva/editar marcador (cualquier capa)
   modalOpen: false,
   editandoId: null,

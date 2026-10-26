@@ -1,5 +1,3 @@
-/* eslint-disable react-hooks/exhaustive-deps */
-/* eslint-disable react-hooks/set-state-in-effect */
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useObrasStore } from "../../store/obrasStore";
 import { useAuthStore } from "../../store/authStore";
@@ -167,8 +165,10 @@ const ImagenDropzone = ({ previewActivo, onDrop, onQuitar, onProcesar, label = "
 // ── Modal principal ─────────────────────────────────────────────────────────
 
 const ObraModal = ({ onSaved }) => {
-  const { modalOpen, editandoId, editandoCapa, coordsTemporales, closeModal } =
-    useObrasStore();
+  const {
+    modalOpen, editandoId, editandoCapa, coordsTemporales, closeModal,
+    marcadorEditando, setMarcadorEditando,
+  } = useObrasStore();
   const { user } = useAuthStore();
   const toast = useToast();
 
@@ -188,72 +188,60 @@ const ObraModal = ({ onSaved }) => {
   const [participacion, setParticipacion] = useState("");
   const [detalles, setDetalles] = useState("");
 
-  // Color individual (solo Espectaculares)
+  // Color individual (capas Espectaculares)
   const [pinColor, setPinColor] = useState("#94a3b8");
+
+  // Checkbox seleccionado (capas Espectaculares)
+  const [seleccionado, setSeleccionado] = useState(false);
 
   const [saving, setSaving] = useState(false);
   const imagen = useImagen();
   const foto = useImagen();
 
-  // ── Prellenado al abrir ────────────────────────────────────────────────────
+  // ── Reset al abrir modal en modo "Nuevo" ───────────────────────────────────
   useEffect(() => {
-    if (!modalOpen) return;
-    if (!editandoId) {
-      setCapa("pp");
-      setNombre("");
-      setTipo("");
-      setAnio(ANIO_DEFAULT);
-      setDistritoLocal("");
-      setSeccion("");
-      setZonaElectoral("");
-      setReferencia("");
-      setParticipacion("");
-      setDetalles("");
-      setPinColor("#94a3b8");
-      imagen.reset();
-      foto.reset();
-    }
-  }, [modalOpen, editandoId]);
+    if (!modalOpen || editandoId) return;
+    setCapa("pp");
+    setNombre("");
+    setTipo("");
+    setAnio(ANIO_DEFAULT);
+    setDistritoLocal("");
+    setSeccion("");
+    setZonaElectoral("");
+    setReferencia("");
+    setParticipacion("");
+    setDetalles("");
+    setPinColor("#94a3b8");
+    setSeleccionado(false);
+    imagen.reset();
+    foto.reset();
+  }, [modalOpen, editandoId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Global para prellenar desde PinLayer al editar
+  // ── Prellenar formulario al editar (datos enviados por PinLayer vía store) ──
   useEffect(() => {
-    window.__llenarFormularioObra = ({
-      nombre: n,
-      tipo: t,
-      anio: a,
-      distritoLocal: dl,
-      seccion: sec,
-      zonaElectoral: zona,
-      referencia: ref,
-      participacion: part,
-      detalles: det,
-      capa: c,
-      pinColor: pc,
-      pinImageUrl,
-      pinImagePath,
-      fotoUrl,
-      fotoPath,
-    }) => {
-      setCapa(c ?? "pp");
-      setNombre(n ?? "");
-      setTipo(t ?? "");
-      setAnio(a ?? ANIO_DEFAULT);
-      setDistritoLocal(dl ?? "");
-      setSeccion(sec ?? "");
-      setZonaElectoral(zona ?? "");
-      setReferencia(ref ?? "");
-      setParticipacion(part != null ? String(part) : "");
-      setDetalles(det ?? "");
-      setPinColor(pc ?? "#94a3b8");
-      imagen.cargar({ pinImageUrl, pinImagePath });
-      foto.cargar({ pinImageUrl: fotoUrl, pinImagePath: fotoPath });
-    };
-    return () => { delete window.__llenarFormularioObra; };
-  }, []);
+    if (!modalOpen || !editandoId || !marcadorEditando) return;
+    const m = marcadorEditando;
+    setCapa(m.capa ?? "pp");
+    setNombre(m.nombre ?? "");
+    setTipo(m.tipo ?? "");
+    setAnio(m.anio ?? ANIO_DEFAULT);
+    setDistritoLocal(m.distritoLocal ?? "");
+    setSeccion(m.seccion ?? "");
+    setZonaElectoral(m.zonaElectoral ?? "");
+    setReferencia(m.referencia ?? "");
+    setParticipacion(m.participacion != null ? String(m.participacion) : "");
+    setDetalles(m.detalles ?? "");
+    setPinColor(m.pinColor ?? "#94a3b8");
+    setSeleccionado(m.seleccionado ?? false);
+    imagen.cargar({ pinImageUrl: m.pinImageUrl, pinImagePath: m.pinImagePath });
+    foto.cargar({ pinImageUrl: m.fotoUrl, pinImagePath: m.fotoPath });
+    // Limpiar para no re-disparar si el componente se re-renderiza
+    setMarcadorEditando(null);
+  }, [modalOpen, editandoId, marcadorEditando]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Guardar ────────────────────────────────────────────────────────────────
   const handleSave = useCallback(async () => {
-    const requiereNombreTipo = capa === "pp" || capa === "general";
+    const requiereNombreTipo = capa === "pp" || capa === "general" || capa === "capital" || capa === "municipios";
     if (requiereNombreTipo && (!nombre.trim() || !tipo.trim())) {
       toast("Por favor, completa Nombre y Tipo.", "warning");
       return;
@@ -264,6 +252,8 @@ const ObraModal = ({ onSaved }) => {
     }
 
     setSaving(true);
+    // Paths de imágenes nuevas subidas en esta operación (para rollback si Firestore falla)
+    const nuevosPathsSubidos = [];
     try {
       const userEmail = user?.email || "Desconocido";
       let pinImageUrl = imagen.imagenUrlActual ?? null;
@@ -280,6 +270,7 @@ const ObraModal = ({ onSaved }) => {
           await eliminarImagenPin(imagen.imagenPathActual);
         }
         const { url, path } = await subirImagenPin(imagen.imagenArchivo);
+        nuevosPathsSubidos.push(path); // registrar para posible rollback
         pinImageUrl = url;
         pinImagePath = path;
       }
@@ -299,6 +290,7 @@ const ObraModal = ({ onSaved }) => {
           await eliminarImagenPin(foto.imagenPathActual);
         }
         const { url, path } = await subirFoto(foto.imagenArchivo);
+        nuevosPathsSubidos.push(path); // registrar para posible rollback
         fotoUrl = url;
         fotoPath = path;
       }
@@ -345,7 +337,8 @@ const ObraModal = ({ onSaved }) => {
           referencia: (capa === "rural" || capa === "top100") ? (referencia || null) : null,
           participacion: (capa === "rural" || capa === "top100") ? (parseFloat(participacion) || null) : null,
           detalles: detalles || null,
-          pinColor: capa === "general" ? pinColor : null,
+          pinColor: (capa === "general" || capa === "capital" || capa === "municipios") ? pinColor : null,
+          seleccionado: (capa === "general" || capa === "capital" || capa === "municipios") ? seleccionado : null,
           coords: coordsTemporales,
           userEmail,
           pinImageUrl,
@@ -365,6 +358,10 @@ const ObraModal = ({ onSaved }) => {
       closeModal();
       onSaved?.();
     } catch (err) {
+      // Rollback: eliminar imágenes recién subidas si el write a Firestore falló
+      for (const path of nuevosPathsSubidos) {
+        await eliminarImagenPin(path).catch(() => {});
+      }
       console.error(err);
       toast("Error al guardar el marcador.", "error");
     } finally {
@@ -372,7 +369,7 @@ const ObraModal = ({ onSaved }) => {
     }
   }, [
     capa, nombre, tipo, anio, distritoLocal, seccion, zonaElectoral, referencia, participacion, detalles,
-    pinColor, imagen, foto, editandoId, coordsTemporales, user, toast, closeModal, onSaved,
+    pinColor, seleccionado, imagen, foto, editandoId, coordsTemporales, user, toast, closeModal, onSaved,
   ]);
 
   if (!modalOpen) return null;
@@ -422,8 +419,8 @@ const ObraModal = ({ onSaved }) => {
             </div>
           )}
 
-          {/* Nombre — solo PP y General */}
-          {(capaActiva === "pp" || capaActiva === "general") && (
+          {/* Nombre — PP y capas Espectaculares */}
+          {(capaActiva === "pp" || capaActiva === "general" || capaActiva === "capital" || capaActiva === "municipios") && (
             <div>
               <label className="block text-xs font-medium text-slate-300 mb-1.5 uppercase tracking-wider">
                 Nombre
@@ -438,8 +435,8 @@ const ObraModal = ({ onSaved }) => {
             </div>
           )}
 
-          {/* Tipo — solo PP y General */}
-          {(capaActiva === "pp" || capaActiva === "general") && (
+          {/* Tipo — PP y capas Espectaculares */}
+          {(capaActiva === "pp" || capaActiva === "general" || capaActiva === "capital" || capaActiva === "municipios") && (
             <div>
               <label className="block text-xs font-medium text-slate-300 mb-1.5 uppercase tracking-wider">
                 Tipo
@@ -579,30 +576,42 @@ const ObraModal = ({ onSaved }) => {
                 />
               </div>
 
-              {/* Color del pin (solo Espectaculares) */}
-              {capaActiva === "general" && (
-                <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1.5 uppercase tracking-wider">
-                    Color del Pin
-                  </label>
-                  <div className="flex items-center gap-2 bg-[#0f172a] border border-[#334155] rounded-lg px-3 py-2">
-                    <input
-                      type="color"
-                      value={pinColor}
-                      onChange={(e) => setPinColor(e.target.value)}
-                      className="w-8 h-8 rounded cursor-pointer border-0 bg-transparent p-0 shrink-0"
-                      style={{ appearance: "none", WebkitAppearance: "none" }}
-                    />
-                    <span className="text-slate-300 text-sm font-mono flex-1">{pinColor}</span>
-                    <button
-                      type="button"
-                      onClick={() => setPinColor("#94a3b8")}
-                      className="text-slate-500 hover:text-slate-300 text-xs transition-colors cursor-pointer shrink-0"
-                    >
-                      Reset
-                    </button>
+              {/* Color del pin y Seleccionado (capas Espectaculares) */}
+              {(capaActiva === "general" || capaActiva === "capital" || capaActiva === "municipios") && (
+                <>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-300 mb-1.5 uppercase tracking-wider">
+                      Color del Pin
+                    </label>
+                    <div className="flex items-center gap-2 bg-[#0f172a] border border-[#334155] rounded-lg px-3 py-2">
+                      <input
+                        type="color"
+                        value={pinColor}
+                        onChange={(e) => setPinColor(e.target.value)}
+                        className="w-8 h-8 rounded cursor-pointer border-0 bg-transparent p-0 shrink-0"
+                        style={{ appearance: "none", WebkitAppearance: "none" }}
+                      />
+                      <span className="text-slate-300 text-sm font-mono flex-1">{pinColor}</span>
+                      <button
+                        type="button"
+                        onClick={() => setPinColor("#94a3b8")}
+                        className="text-slate-500 hover:text-slate-300 text-xs transition-colors cursor-pointer shrink-0"
+                      >
+                        Reset
+                      </button>
+                    </div>
                   </div>
-                </div>
+
+                  <label className="flex items-center gap-3 bg-[#0f172a] border border-[#334155] rounded-lg px-3 py-2.5 cursor-pointer hover:border-slate-400 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={seleccionado}
+                      onChange={(e) => setSeleccionado(e.target.checked)}
+                      className="w-4 h-4 cursor-pointer accent-blue-500 shrink-0"
+                    />
+                    <span className="text-slate-200 text-sm">Seleccionado</span>
+                  </label>
+                </>
               )}
             </>
           )}

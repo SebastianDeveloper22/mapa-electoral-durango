@@ -60,6 +60,22 @@ service cloud.firestore {
       allow delete: if isEditorOrAdmin();
     }
 
+    // ── Módulo PP: Marcadores Espectaculares Capital ──────────────────────────
+
+    match /marcadores_capital/{docId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isEditorOrAdmin();
+      allow delete: if isEditorOrAdmin();
+    }
+
+    // ── Módulo PP: Marcadores Espectaculares Municipios ───────────────────────
+
+    match /marcadores_municipios/{docId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isEditorOrAdmin();
+      allow delete: if isEditorOrAdmin();
+    }
+
     // ── Módulo PP: Papelera de auditoría ──────────────────────────────────────
 
     match /papelera/{papeleraId} {

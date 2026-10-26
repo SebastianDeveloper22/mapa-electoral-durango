@@ -1,7 +1,5 @@
-/* eslint-disable react-hooks/refs */
-/* eslint-disable react-hooks/exhaustive-deps */
-/* eslint-disable react-hooks/immutability */
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
+import { createPortal } from "react-dom";
 import maplibregl from "maplibre-gl";
 import { useMapStore } from "../../store/mapStore";
 import { useObrasStore } from "../../store/obrasStore";
@@ -11,7 +9,17 @@ import { getMarcadoresTodos, deleteMarcador } from "../../services/marcadoresSer
 import { useToast } from "../ui/Toast";
 import { ROLES, COLORES_MARCADOR } from "../../config";
 
-// Colores de PP por año
+// ── Escape HTML para evitar XSS en popups ────────────────────────────────────
+
+const escHTML = (s) =>
+  String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+
+// ── Colores de PP por año ─────────────────────────────────────────────────────
+
 const PIN_COLORS_ANIO = {
   2023: "#f59e0b",
   2024: "#3b82f6",
@@ -20,7 +28,8 @@ const PIN_COLORS_ANIO = {
 };
 const PIN_DEFAULT = "#94a3b8";
 
-// SVG de pin coloreado
+// ── SVG de pin coloreado ──────────────────────────────────────────────────────
+
 const pinSVG = (color) => `
   <svg xmlns="http://www.w3.org/2000/svg" width="28" height="36" viewBox="0 0 28 36">
     <ellipse cx="14" cy="34" rx="5" ry="2" fill="rgba(0,0,0,0.25)"/>
@@ -49,7 +58,8 @@ const crearElementoPin = (color) => {
   return el;
 };
 
-// Dimensiones base del pin de imagen
+// ── Pin de imagen ─────────────────────────────────────────────────────────────
+
 const PIN_IMG_BASE = { size: 88, triH: 13, pad: 6, radius: 12, border: 2.5 };
 const BORDER_COLOR = "#2d3a4a";
 
@@ -126,44 +136,54 @@ const crearElementoPinImagen = (imageUrl) => {
   return el;
 };
 
-// ── Lightbox ─────────────────────────────────────────────────────────────────
+// ── Lightbox ──────────────────────────────────────────────────────────────────
 
 const mostrarLightbox = (url) => {
   document.getElementById("pin-lightbox")?.remove();
   const overlay = document.createElement("div");
   overlay.id = "pin-lightbox";
-  overlay.style.cssText = "position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.88);display:flex;align-items:center;justify-content:center;cursor:zoom-out;";
-  overlay.innerHTML = `<img src="${url}" style="max-width:90vw;max-height:90vh;object-fit:contain;border-radius:10px;box-shadow:0 8px 40px rgba(0,0,0,0.6);" draggable="false" />`;
+  overlay.style.cssText =
+    "position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.88);" +
+    "display:flex;align-items:center;justify-content:center;cursor:zoom-out;";
+  // Crear img via DOM para evitar XSS con innerHTML
+  const img = document.createElement("img");
+  img.src = url;
+  img.style.cssText =
+    "max-width:90vw;max-height:90vh;object-fit:contain;border-radius:10px;" +
+    "box-shadow:0 8px 40px rgba(0,0,0,0.6);";
+  img.draggable = false;
+  overlay.appendChild(img);
   overlay.addEventListener("click", () => overlay.remove());
   document.body.appendChild(overlay);
 };
 
-// ── Popups ──────────────────────────────────────────────────────────────────
+// ── Popups ────────────────────────────────────────────────────────────────────
 
 const crearHTMLPopupPP = (obra, role) => {
   const { id, nombre, tipo, anio, coords, creadoPor, fechaCreacion, fotoUrl } = obra;
   const googleUrl = `https://www.google.com/maps?q=${coords.lat},${coords.lng}`;
   const canEdit = role === ROLES.ADMIN || role === ROLES.EDITOR;
   const botonesEdicion = canEdit
-    ? `<button class="pin-btn pin-edit" data-id="${id}" data-capa="pp">✏️ Editar</button>
-       <button class="pin-btn pin-delete" data-id="${id}" data-capa="pp">🗑️ Borrar</button>`
+    ? `<button class="pin-btn pin-edit" data-id="${escHTML(id)}" data-capa="pp">✏️ Editar</button>
+       <button class="pin-btn pin-delete" data-id="${escHTML(id)}" data-capa="pp">🗑️ Borrar</button>`
     : "";
   const fotoThumb = fotoUrl
-    ? `<img src="${fotoUrl}" class="pin-foto-thumb" data-foto="${fotoUrl}" style="width:100%;height:90px;object-fit:cover;border-radius:8px;margin-bottom:8px;cursor:zoom-in;display:block;" />`
+    ? `<img src="${escHTML(fotoUrl)}" class="pin-foto-thumb" data-foto="${escHTML(fotoUrl)}"
+        style="width:100%;height:90px;object-fit:cover;border-radius:8px;margin-bottom:8px;cursor:zoom-in;display:block;" />`
     : "";
   return `
     <div class="pin-popup">
-      <div class="pin-popup-header">Obra P.P. ${anio}</div>
+      <div class="pin-popup-header">Obra P.P. ${escHTML(anio)}</div>
       ${fotoThumb}
       <div class="pin-popup-body">
-        <div class="pin-popup-row"><span class="pin-key">Nombre</span><span class="pin-val">${nombre}</span></div>
-        <div class="pin-popup-row"><span class="pin-key">Intervención</span><span class="pin-val">${tipo}</span></div>
+        <div class="pin-popup-row"><span class="pin-key">Nombre</span><span class="pin-val">${escHTML(nombre)}</span></div>
+        <div class="pin-popup-row"><span class="pin-key">Intervención</span><span class="pin-val">${escHTML(tipo)}</span></div>
       </div>
       <div class="pin-popup-actions">
         <a href="${googleUrl}" target="_blank" class="pin-btn pin-route">🗺️ Ubicación</a>
         ${botonesEdicion}
       </div>
-      <div class="pin-traceability">Registrado por <span>${creadoPor || "Sistema"}</span><br>${fechaCreacion || ""}</div>
+      <div class="pin-traceability">Registrado por <span>${escHTML(creadoPor || "Sistema")}</span><br>${escHTML(fechaCreacion || "")}</div>
     </div>
   `;
 };
@@ -171,47 +191,53 @@ const crearHTMLPopupPP = (obra, role) => {
 const CAPA_LABELS = {
   rural: "Rural",
   top100: "Top 100 Urbano",
-  general: "Espectaculares",
+  general: "Espectaculares Laguna",
+  capital: "Espectaculares Capital",
+  municipios: "Espectaculares Municipios",
 };
 
 const crearHTMLPopupMarcador = (m, role) => {
-  const { id, capa, nombre, tipo, distritoLocal, seccion, zonaElectoral, referencia, participacion, detalles, coords, creadoPor, fechaCreacion, fotoUrl } = m;
+  const {
+    id, capa, nombre, tipo, distritoLocal, seccion, zonaElectoral,
+    referencia, participacion, detalles, coords, creadoPor, fechaCreacion, fotoUrl,
+  } = m;
   const googleUrl = `https://www.google.com/maps?q=${coords.lat},${coords.lng}`;
   const canEdit = role === ROLES.ADMIN || role === ROLES.EDITOR;
   const botonesEdicion = canEdit
-    ? `<button class="pin-btn pin-edit" data-id="${id}" data-capa="${capa}">✏️ Editar</button>
-       <button class="pin-btn pin-delete" data-id="${id}" data-capa="${capa}">🗑️ Borrar</button>`
+    ? `<button class="pin-btn pin-edit" data-id="${escHTML(id)}" data-capa="${escHTML(capa)}">✏️ Editar</button>
+       <button class="pin-btn pin-delete" data-id="${escHTML(id)}" data-capa="${escHTML(capa)}">🗑️ Borrar</button>`
     : "";
   const nombreRow = nombre
-    ? `<div class="pin-popup-row"><span class="pin-key">Nombre</span><span class="pin-val">${nombre}</span></div>`
+    ? `<div class="pin-popup-row"><span class="pin-key">Nombre</span><span class="pin-val">${escHTML(nombre)}</span></div>`
     : "";
   const tipoRow = tipo
-    ? `<div class="pin-popup-row"><span class="pin-key">Tipo</span><span class="pin-val">${tipo}</span></div>`
+    ? `<div class="pin-popup-row"><span class="pin-key">Tipo</span><span class="pin-val">${escHTML(tipo)}</span></div>`
     : "";
   const dlRow = distritoLocal
-    ? `<div class="pin-popup-row"><span class="pin-key">Distrito</span><span class="pin-val">${distritoLocal}</span></div>`
+    ? `<div class="pin-popup-row"><span class="pin-key">Distrito</span><span class="pin-val">${escHTML(distritoLocal)}</span></div>`
     : "";
   const secRow = seccion
-    ? `<div class="pin-popup-row"><span class="pin-key">Sección</span><span class="pin-val">${seccion}</span></div>`
+    ? `<div class="pin-popup-row"><span class="pin-key">Sección</span><span class="pin-val">${escHTML(seccion)}</span></div>`
     : "";
   const zonaRow = zonaElectoral
-    ? `<div class="pin-popup-row"><span class="pin-key">Zona</span><span class="pin-val">${zonaElectoral}</span></div>`
+    ? `<div class="pin-popup-row"><span class="pin-key">Zona</span><span class="pin-val">${escHTML(zonaElectoral)}</span></div>`
     : "";
   const refRow = referencia
-    ? `<div class="pin-popup-row"><span class="pin-key">Referencia</span><span class="pin-val">${referencia}</span></div>`
+    ? `<div class="pin-popup-row"><span class="pin-key">Referencia</span><span class="pin-val">${escHTML(referencia)}</span></div>`
     : "";
   const partRow = participacion != null
     ? `<div class="pin-popup-row"><span class="pin-key">Participación</span><span class="pin-val">${Number(participacion).toFixed(1)}%</span></div>`
     : "";
   const detRow = detalles
-    ? `<div class="pin-popup-row"><span class="pin-key">Detalles</span><span class="pin-val">${detalles}</span></div>`
+    ? `<div class="pin-popup-row"><span class="pin-key">Detalles</span><span class="pin-val">${escHTML(detalles)}</span></div>`
     : "";
   const fotoThumb = fotoUrl
-    ? `<img src="${fotoUrl}" class="pin-foto-thumb" data-foto="${fotoUrl}" style="width:100%;height:90px;object-fit:cover;border-radius:8px;margin-bottom:8px;cursor:zoom-in;display:block;" />`
+    ? `<img src="${escHTML(fotoUrl)}" class="pin-foto-thumb" data-foto="${escHTML(fotoUrl)}"
+        style="width:100%;height:90px;object-fit:cover;border-radius:8px;margin-bottom:8px;cursor:zoom-in;display:block;" />`
     : "";
   return `
     <div class="pin-popup">
-      <div class="pin-popup-header">${CAPA_LABELS[capa] ?? capa}</div>
+      <div class="pin-popup-header">${escHTML(CAPA_LABELS[capa] ?? capa)}</div>
       ${fotoThumb}
       <div class="pin-popup-body">
         ${nombreRow}${tipoRow}${dlRow}${secRow}${zonaRow}${refRow}${partRow}${detRow}
@@ -220,12 +246,12 @@ const crearHTMLPopupMarcador = (m, role) => {
         <a href="${googleUrl}" target="_blank" class="pin-btn pin-route">🗺️ Ubicación</a>
         ${botonesEdicion}
       </div>
-      <div class="pin-traceability">Registrado por <span>${creadoPor || "Sistema"}</span><br>${fechaCreacion || ""}</div>
+      <div class="pin-traceability">Registrado por <span>${escHTML(creadoPor || "Sistema")}</span><br>${escHTML(fechaCreacion || "")}</div>
     </div>
   `;
 };
 
-// ── Componente ───────────────────────────────────────────────────────────────
+// ── Componente ────────────────────────────────────────────────────────────────
 
 const PinLayer = ({ reloadTrigger, onReload }) => {
   const {
@@ -234,22 +260,29 @@ const PinLayer = ({ reloadTrigger, onReload }) => {
     filtroTipo,
     marcadoresVisibles,
     filtrosDL,
+    filtroSeleccionado,
   } = useMapStore();
-  const { openModalEditar, setObras } = useObrasStore();
+  const { openModalEditar, setObras, setMarcadorEditando, setExtras } = useObrasStore();
   const { role, user } = useAuthStore();
   const toast = useToast();
+
   const marcadoresRef = useRef([]);   // { marker, capa, anio, dl }
   const todosRef = useRef([]);        // todos los objetos cargados
   const imagePinEls = useRef([]);
 
+  const [cargando, setCargando] = useState(false);
+  // Contador que incrementa en cada carga, garantizando que el efecto de
+  // filtros se dispare aunque el número de marcadores sea igual al anterior.
+  const [loadId, setLoadId] = useState(0);
+
   const escalaParaZoom = (zoom) =>
     Math.max(0.3, Math.min(1.25, 0.38 + (zoom - 10) * 0.117));
 
-  const aplicarTamanos = () => {
+  const aplicarTamanos = useCallback(() => {
     if (!mapInstance) return;
     const scale = escalaParaZoom(mapInstance.getZoom());
     imagePinEls.current.forEach((el) => aplicarDimensionesPin(el, scale));
-  };
+  }, [mapInstance]);
 
   useEffect(() => {
     if (!mapInstance) return;
@@ -257,7 +290,7 @@ const PinLayer = ({ reloadTrigger, onReload }) => {
     return () => mapInstance.off("zoom", aplicarTamanos);
   }, [mapInstance, aplicarTamanos]);
 
-  // ── Cargar todos los marcadores ───────────────────────────────────────────
+  // ── Cargar todos los marcadores ─────────────────────────────────────────────
   useEffect(() => {
     if (!mapInstance) return;
 
@@ -265,31 +298,38 @@ const PinLayer = ({ reloadTrigger, onReload }) => {
       marcadoresRef.current.forEach(({ marker }) => marker.remove());
       marcadoresRef.current = [];
       imagePinEls.current = [];
+      setCargando(true);
 
       try {
-        const [obras, extras] = await Promise.all([
+        const [obras, extrasArr] = await Promise.all([
           getObras(),
           getMarcadoresTodos(),
         ]);
 
         // Guardar obras PP en el store para StatsModal
         setObras(obras);
+
+        // Agrupar extras por capa y guardar en store (evita doble fetch en StatsModal)
+        const extrasAgrupados = { rural: [], top100: [], general: [], capital: [], municipios: [] };
+        extrasArr.forEach((m) => { if (extrasAgrupados[m.capa]) extrasAgrupados[m.capa].push(m); });
+        setExtras(extrasAgrupados);
+
         todosRef.current = [
           ...obras.map((o) => ({ ...o, capa: "pp" })),
-          ...extras,
+          ...extrasArr,
         ];
 
         todosRef.current.forEach((item) => {
           const { capa, anio, distritoLocal, pinImageUrl, coords } = item;
 
-          // Ignorar documentos sin coordenadas válidas (ej. placeholders de Firebase Console)
+          // Ignorar documentos sin coordenadas válidas
           if (!coords?.lat || !coords?.lng) return;
 
           // Color del pin
           let pinColor;
           if (capa === "pp") {
             pinColor = PIN_COLORS_ANIO[anio] || PIN_DEFAULT;
-          } else if (capa === "general") {
+          } else if (capa === "general" || capa === "capital" || capa === "municipios") {
             pinColor = item.pinColor || PIN_DEFAULT;
           } else {
             pinColor = COLORES_MARCADOR[capa] || PIN_DEFAULT;
@@ -302,11 +342,17 @@ const PinLayer = ({ reloadTrigger, onReload }) => {
           el.dataset.capa = capa;
           el.dataset.anio = anio || "";
           el.dataset.dl = distritoLocal || "";
+          // Normalizar tipo y nombre para búsqueda sin distinción de acentos/mayúsculas
           el.dataset.tipo = (item.tipo || "")
             .toLowerCase()
             .normalize("NFD")
             .replace(/[\u0300-\u036f]/g, "");
+          el.dataset.nombre = (item.nombre || "")
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "");
           el.dataset.id = item.id;
+          el.dataset.seleccionado = item.seleccionado ? "1" : "0";
 
           if (pinImageUrl) {
             aplicarDimensionesPin(el, escalaParaZoom(mapInstance.getZoom()));
@@ -337,18 +383,23 @@ const PinLayer = ({ reloadTrigger, onReload }) => {
           marcadoresRef.current.push({ marker, capa, anio, dl: distritoLocal || "" });
         });
 
-        aplicarFiltros();
+        // Incrementar siempre para que el efecto de filtros se dispare
+        setLoadId((n) => n + 1);
       } catch (err) {
         console.error(err);
         toast("Error al cargar los marcadores.", "error");
+      } finally {
+        setCargando(false);
       }
     };
 
     cargar();
-  }, [mapInstance, reloadTrigger, role]);
+  }, [mapInstance, reloadTrigger, role]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Nota: setObras, setExtras, toast son referencias estables; aplicarFiltros
+  // se ejecuta reactivamente via marcadoresCount, no como dep de carga.
 
-  // ── Aplicar filtros de visibilidad ────────────────────────────────────────
-  const aplicarFiltros = () => {
+  // ── Aplicar filtros de visibilidad ──────────────────────────────────────────
+  const aplicarFiltros = useCallback(() => {
     const filtroLimpio =
       filtroTipo === "all"
         ? "all"
@@ -357,24 +408,38 @@ const PinLayer = ({ reloadTrigger, onReload }) => {
     marcadoresRef.current.forEach(({ marker, capa, anio, dl }) => {
       const el = marker.getElement();
       const tipoPin = el.dataset.tipo;
+      const esEspectacular = capa === "general" || capa === "capital" || capa === "municipios";
 
-      const visible = capa === "pp"
-        ? (aniosVisibles[anio] !== false) && (filtroLimpio === "all" || tipoPin.includes(filtroLimpio))
-        : (marcadoresVisibles[capa] !== false) &&
-          (capa === "rural" || capa === "top100" ? filtrosDL[capa]?.[dl] !== false : true);
+      let visible;
+      if (capa === "pp") {
+        visible =
+          aniosVisibles[anio] !== false &&
+          (filtroLimpio === "all" || tipoPin.includes(filtroLimpio));
+      } else if (capa === "rural" || capa === "top100") {
+        visible =
+          marcadoresVisibles[capa] !== false &&
+          filtrosDL[capa]?.[dl] !== false;
+      } else if (esEspectacular) {
+        const soloSelec = filtroSeleccionado[capa] === true;
+        const estaSelec = el.dataset.seleccionado === "1";
+        visible =
+          marcadoresVisibles[capa] !== false && (!soloSelec || estaSelec);
+      } else {
+        visible = marcadoresVisibles[capa] !== false;
+      }
 
       el.style.display = visible ? "" : "none";
     });
-  };
+  }, [aniosVisibles, filtroTipo, marcadoresVisibles, filtrosDL, filtroSeleccionado]);
 
   useEffect(() => {
     aplicarFiltros();
-  }, [aniosVisibles, filtroTipo, marcadoresVisibles, filtrosDL, marcadoresRef.current.length]);
+  }, [aplicarFiltros, loadId]);
 
-  // ── Eventos de editar/borrar desde popups ─────────────────────────────────
+  // ── Eventos de editar/borrar desde popups ───────────────────────────────────
   useEffect(() => {
     const handler = async (e) => {
-      // FOTO LIGHTBOX (debe ir antes de la guarda de id/capa)
+      // Foto lightbox
       if (e.target.classList.contains("pin-foto-thumb")) {
         mostrarLightbox(e.target.dataset.foto);
         return;
@@ -412,7 +477,8 @@ const PinLayer = ({ reloadTrigger, onReload }) => {
         );
         const coords = entry ? entry.marker.getLngLat() : item.coords;
 
-        window.__llenarFormularioObra?.({
+        // Pasar datos al store en vez de usar window global
+        setMarcadorEditando({
           nombre: item.nombre,
           tipo: item.tipo,
           anio: item.anio,
@@ -420,9 +486,11 @@ const PinLayer = ({ reloadTrigger, onReload }) => {
           seccion: item.seccion ?? "",
           zonaElectoral: item.zonaElectoral ?? "",
           referencia: item.referencia ?? "",
+          participacion: item.participacion ?? null,
           detalles: item.detalles ?? "",
           capa,
           pinColor: item.pinColor ?? null,
+          seleccionado: item.seleccionado ?? false,
           pinImageUrl: item.pinImageUrl ?? null,
           pinImagePath: item.pinImagePath ?? null,
           fotoUrl: item.fotoUrl ?? null,
@@ -436,7 +504,20 @@ const PinLayer = ({ reloadTrigger, onReload }) => {
 
     document.addEventListener("click", handler);
     return () => document.removeEventListener("click", handler);
-  }, [role, user]);
+  }, [role, user, openModalEditar, setMarcadorEditando, toast, onReload]);
+
+  // Spinner de carga via portal (PinLayer no tiene DOM propio)
+  if (cargando) {
+    return createPortal(
+      <div className="fixed inset-0 z-40 pointer-events-none flex items-start justify-center pt-20">
+        <div className="bg-[#1e293b]/90 border border-[#334155] text-slate-200 text-xs px-4 py-2 rounded-xl shadow-lg flex items-center gap-2">
+          <div className="w-3 h-3 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+          Cargando marcadores...
+        </div>
+      </div>,
+      document.body
+    );
+  }
 
   return null;
 };

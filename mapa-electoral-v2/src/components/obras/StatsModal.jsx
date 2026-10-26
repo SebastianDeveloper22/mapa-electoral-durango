@@ -1,6 +1,5 @@
-/* eslint-disable react-hooks/set-state-in-effect */
-/* eslint-disable react-hooks/exhaustive-deps */
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
+import { useState } from "react";
 import {
   Chart,
   ArcElement,
@@ -13,7 +12,6 @@ import {
   BarController,
 } from "chart.js";
 import { useObrasStore } from "../../store/obrasStore";
-import { getMarcadoresTodos } from "../../services/marcadoresService";
 
 Chart.register(
   ArcElement, BarElement, CategoryScale, LinearScale,
@@ -21,10 +19,12 @@ Chart.register(
 );
 
 const TABS = [
-  { key: "pp",      label: "PP" },
-  { key: "rural",   label: "Rural" },
-  { key: "top100",  label: "Top 100" },
-  { key: "general", label: "Espectaculares" },
+  { key: "pp",        label: "PP" },
+  { key: "rural",     label: "Rural" },
+  { key: "top100",    label: "Top 100" },
+  { key: "general",   label: "Laguna" },
+  { key: "capital",   label: "Capital" },
+  { key: "municipios", label: "Municipios" },
 ];
 
 const strHash = (s) => {
@@ -41,7 +41,7 @@ const colorFromStr = (s) => {
 const normalizar = (t) =>
   (t || "").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
-// Colores por Distrito Local (DL 1–6): azul, cian, esmeralda, violeta, amarillo, rosa
+// Colores por Distrito Local (DL 1–6)
 const COLORES_DL = ["#3b82f6", "#06b6d4", "#10b981", "#8b5cf6", "#eab308", "#ec4899"];
 const colorDL = (i) => COLORES_DL[i % COLORES_DL.length];
 
@@ -173,7 +173,7 @@ const useGraficas = (open, items, ejeSecundario, claveEje, modoParticipacion = f
     });
 
     return () => { donaInst.current?.destroy(); barraInst.current?.destroy(); };
-  }, [open, items]);
+  }, [open, items]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return { donaRef, barraRef };
 };
@@ -224,32 +224,18 @@ const TabPanel = ({ open, items, ejeSecundario, claveEje, modoParticipacion, onE
 // ── Modal principal ───────────────────────────────────────────────────────────
 
 const StatsModal = ({ open, onClose }) => {
-  const { obras } = useObrasStore();
+  const { obras, extras } = useObrasStore();
   const [tabActiva, setTabActiva] = useState("pp");
-  const [extras, setExtras] = useState({ rural: [], top100: [], general: [] });
-  const [cargando, setCargando] = useState(false);
 
-  useEffect(() => {
-    if (!open) return;
-    setCargando(true);
-    getMarcadoresTodos()
-      .then((todos) => {
-        setExtras({
-          rural:   todos.filter((m) => m.capa === "rural"),
-          top100:  todos.filter((m) => m.capa === "top100"),
-          general: todos.filter((m) => m.capa === "general"),
-        });
-      })
-      .catch(console.error)
-      .finally(() => setCargando(false));
-  }, [open]);
+  // extras === null significa que PinLayer todavía no ha terminado de cargar
+  const cargando = extras === null;
 
   const exportarCSV = (items, nombreArchivo, camposExtra = []) => {
     const cabecera = ["Nombre", "Tipo", ...camposExtra, "Latitud", "Longitud", "Registrado Por", "Fecha"];
     let csv = "data:text/csv;charset=utf-8,\uFEFF" + cabecera.join(",") + "\n";
     items.forEach((item) => {
-      const extras_ = camposExtra.map((c) => `"${item[c] || ""}"`).join(",");
-      csv += `"${item.nombre || ""}","${item.tipo || ""}",${extras_},${item.coords?.lat || ""},${item.coords?.lng || ""},"${item.creadoPor || "Sistema"}","${item.fechaCreacion || ""}"\n`;
+      const extrasRow = camposExtra.map((c) => `"${item[c] || ""}"`).join(",");
+      csv += `"${item.nombre || ""}","${item.tipo || ""}",${extrasRow},${item.coords?.lat || ""},${item.coords?.lng || ""},"${item.creadoPor || "Sistema"}","${item.fechaCreacion || ""}"\n`;
     });
     const link = document.createElement("a");
     link.href = encodeURI(csv);
@@ -258,6 +244,12 @@ const StatsModal = ({ open, onClose }) => {
   };
 
   if (!open) return null;
+
+  const rural      = extras?.rural      ?? [];
+  const top100     = extras?.top100     ?? [];
+  const general    = extras?.general    ?? [];
+  const capital    = extras?.capital    ?? [];
+  const municipios = extras?.municipios ?? [];
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
@@ -303,30 +295,48 @@ const StatsModal = ({ open, onClose }) => {
             {tabActiva === "rural" && (
               <TabPanel
                 open
-                items={extras.rural}
+                items={rural}
                 ejeSecundario="Por Distrito Local"
                 claveEje="distritoLocal"
                 modoParticipacion
-                onExportar={() => exportarCSV(extras.rural, "Reporte_Rural", ["distritoLocal", "seccion", "zonaElectoral", "referencia", "participacion"])}
+                onExportar={() => exportarCSV(rural, "Reporte_Rural", ["distritoLocal", "seccion", "zonaElectoral", "referencia", "participacion"])}
               />
             )}
             {tabActiva === "top100" && (
               <TabPanel
                 open
-                items={extras.top100}
+                items={top100}
                 ejeSecundario="Por Distrito Local"
                 claveEje="distritoLocal"
                 modoParticipacion
-                onExportar={() => exportarCSV(extras.top100, "Reporte_Top100", ["distritoLocal", "seccion", "zonaElectoral", "referencia", "participacion"])}
+                onExportar={() => exportarCSV(top100, "Reporte_Top100", ["distritoLocal", "seccion", "zonaElectoral", "referencia", "participacion"])}
               />
             )}
             {tabActiva === "general" && (
               <TabPanel
                 open
-                items={extras.general}
+                items={general}
                 ejeSecundario="Por Tipo"
                 claveEje="tipo"
-                onExportar={() => exportarCSV(extras.general, "Reporte_Espectaculares", ["distritoLocal", "seccion", "detalles"])}
+                onExportar={() => exportarCSV(general, "Reporte_Espectaculares_Laguna", ["distritoLocal", "seccion", "detalles"])}
+              />
+            )}
+            {tabActiva === "capital" && (
+              <TabPanel
+                open
+                items={capital}
+                ejeSecundario="Por Tipo"
+                claveEje="tipo"
+                onExportar={() => exportarCSV(capital, "Reporte_Espectaculares_Capital", ["distritoLocal", "seccion", "detalles"])}
+              />
+            )}
+            {tabActiva === "municipios" && (
+              <TabPanel
+                open
+                items={municipios}
+                ejeSecundario="Por Tipo"
+                claveEje="tipo"
+                onExportar={() => exportarCSV(municipios, "Reporte_Espectaculares_Municipios", ["distritoLocal", "seccion", "detalles"])}
               />
             )}
           </>

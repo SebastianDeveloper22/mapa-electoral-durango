@@ -46,6 +46,8 @@ export const useMapStore = create((set) => ({
     rural: true,
     top100: true,
     general: true,
+    capital: true,
+    municipios: true,
   },
   toggleMarcador: (capa) =>
     set((state) => ({
@@ -68,6 +70,20 @@ export const useMapStore = create((set) => ({
           ...state.filtrosDL[capa],
           [dl]: !state.filtrosDL[capa][dl],
         },
+      },
+    })),
+
+  // Filtro "solo seleccionados" por capa de Espectaculares
+  filtroSeleccionado: {
+    general: false,
+    capital: false,
+    municipios: false,
+  },
+  toggleFiltroSeleccionado: (capa) =>
+    set((state) => ({
+      filtroSeleccionado: {
+        ...state.filtroSeleccionado,
+        [capa]: !state.filtroSeleccionado[capa],
       },
     })),
 

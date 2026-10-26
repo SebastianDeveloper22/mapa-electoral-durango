@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 import { useEffect, useRef } from "react";
 import { useMapStore } from "../../store/mapStore";
 import { CAPAS, ANIOS, DISTRITOS_LOCALES, COLORES_MARCADOR } from "../../config";
@@ -21,9 +20,11 @@ const CAPA_LABELS = {
 };
 
 const MARCADORES_EXTRA = [
-  { key: "rural",   label: "Rural",          conDL: true },
-  { key: "top100",  label: "Top 100 Urbano", conDL: true },
-  { key: "general", label: "Espectaculares",  conDL: false },
+  { key: "rural",      label: "Rural",                   conDL: true,  conSelec: false },
+  { key: "top100",     label: "Top 100 Urbano",          conDL: true,  conSelec: false },
+  { key: "general",    label: "Espectaculares Laguna",   conDL: false, conSelec: true  },
+  { key: "capital",    label: "Espectaculares Capital",  conDL: false, conSelec: true  },
+  { key: "municipios", label: "Espectaculares Municipios", conDL: false, conSelec: true },
 ];
 
 const LayerPanel = () => {
@@ -41,6 +42,8 @@ const LayerPanel = () => {
     toggleMarcador,
     filtrosDL,
     toggleDL,
+    filtroSeleccionado,
+    toggleFiltroSeleccionado,
   } = useMapStore();
 
   const panelRef = useRef(null);
@@ -53,7 +56,7 @@ const LayerPanel = () => {
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
-  }, []);
+  }, [closeLayerMenu]);
 
   return (
     <div ref={panelRef} className="absolute top-4 left-4 z-20">
@@ -136,7 +139,7 @@ const LayerPanel = () => {
             Marcadores Adicionales
           </h4>
 
-          {MARCADORES_EXTRA.map(({ key, label, conDL }) => {
+          {MARCADORES_EXTRA.map(({ key, label, conDL, conSelec }) => {
             const color = COLORES_MARCADOR[key];
             const activo = marcadoresVisibles[key] !== false;
             return (
@@ -178,6 +181,22 @@ const LayerPanel = () => {
                         {dl}
                       </label>
                     ))}
+                  </div>
+                )}
+
+                {/* Filtro "Solo seleccionados" para capas Espectaculares */}
+                {conSelec && activo && (
+                  <div className="ml-6 mt-0.5 mb-1">
+                    <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-300 hover:text-white transition-colors py-0.5">
+                      <input
+                        type="checkbox"
+                        checked={filtroSeleccionado[key] === true}
+                        onChange={() => toggleFiltroSeleccionado(key)}
+                        className="w-3 h-3 cursor-pointer"
+                        style={{ accentColor: color }}
+                      />
+                      Solo seleccionados
+                    </label>
                   </div>
                 )}
               </div>

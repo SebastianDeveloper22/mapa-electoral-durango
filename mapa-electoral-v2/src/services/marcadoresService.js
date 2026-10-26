@@ -17,6 +17,8 @@ const COLECCIONES = {
   rural: "marcadores_rural",
   top100: "marcadores_top100",
   general: "marcadores_generales",
+  capital: "marcadores_capital",
+  municipios: "marcadores_municipios",
 };
 
 const fechaFormato = () =>
@@ -59,6 +61,7 @@ export const createMarcador = async ({
   participacion,
   detalles,
   pinColor,
+  seleccionado,
   coords,
   userEmail,
   pinImageUrl,
@@ -78,6 +81,7 @@ export const createMarcador = async ({
     participacion: participacion ?? null,
     detalles: detalles ?? null,
     pinColor: pinColor ?? null,
+    seleccionado: seleccionado ?? false,
     coords: { lat: coords.lat, lng: coords.lng },
     creadoPor: userEmail,
     fechaCreacion: fechaFormato(),
@@ -102,6 +106,7 @@ export const updateMarcador = async ({
   participacion,
   detalles,
   pinColor,
+  seleccionado,
   coords,
   userEmail,
   pinImageUrl,
@@ -121,6 +126,7 @@ export const updateMarcador = async ({
     participacion: participacion ?? null,
     detalles: detalles ?? null,
     pinColor: pinColor ?? null,
+    seleccionado: seleccionado ?? false,
     coords: { lat: coords.lat, lng: coords.lng },
     ultimaEdicionPor: userEmail,
     fechaEdicion: fechaFormato(),

@@ -9,17 +9,23 @@ import {
 } from "firebase/firestore";
 import { db } from "./firebase";
 import { subirImagenPin, eliminarImagenPin, subirFoto } from "./obrasService";
+import { getMarcadoresCustom } from "./coleccionesConfigService";
 
 const PAPELERA = "papelera";
+const COL_CUSTOM = "marcadores_custom";
 
-// Colecciones por tipo de capa
+// Colecciones fijas por tipo de capa
 const COLECCIONES = {
   rural: "marcadores_rural",
   top100: "marcadores_top100",
   general: "marcadores_generales",
   capital: "marcadores_capital",
   municipios: "marcadores_municipios",
+  guardianes: "marcadores_guardianes",
 };
+
+// Devuelve true si la capa es dinámica (no está en las colecciones fijas)
+const esCapaDinamica = (capa) => !(capa in COLECCIONES) && capa !== "pp";
 
 const fechaFormato = () =>
   new Date().toLocaleDateString("es-MX", {
@@ -42,10 +48,11 @@ export const getMarcadores = async (capa) => {
 };
 
 export const getMarcadoresTodos = async () => {
-  const resultados = await Promise.all(
-    Object.keys(COLECCIONES).map((capa) => getMarcadores(capa))
-  );
-  return resultados.flat();
+  const [fijos, custom] = await Promise.all([
+    Promise.all(Object.keys(COLECCIONES).map((capa) => getMarcadores(capa))),
+    getMarcadoresCustom(),
+  ]);
+  return [...fijos.flat(), ...custom];
 };
 
 // ── Crear marcador ────────────────────────────────────────────────────────────
@@ -62,6 +69,12 @@ export const createMarcador = async ({
   detalles,
   pinColor,
   seleccionado,
+  visitado,
+  direccion,
+  telefono,
+  zona,
+  red,
+  atendido,
   coords,
   userEmail,
   pinImageUrl,
@@ -69,9 +82,9 @@ export const createMarcador = async ({
   fotoUrl,
   fotoPath,
 }) => {
-  const col = COLECCIONES[capa];
+  const col = esCapaDinamica(capa) ? COL_CUSTOM : COLECCIONES[capa];
   if (!col) throw new Error(`Capa desconocida: ${capa}`);
-  await addDoc(collection(db, col), {
+  const payload = {
     nombre,
     tipo,
     distritoLocal: distritoLocal ?? null,
@@ -82,6 +95,12 @@ export const createMarcador = async ({
     detalles: detalles ?? null,
     pinColor: pinColor ?? null,
     seleccionado: seleccionado ?? false,
+    visitado: visitado ?? false,
+    direccion: direccion ?? null,
+    telefono: telefono ?? null,
+    zona: zona ?? null,
+    red: red ?? null,
+    atendido: atendido ?? false,
     coords: { lat: coords.lat, lng: coords.lng },
     creadoPor: userEmail,
     fechaCreacion: fechaFormato(),
@@ -89,7 +108,9 @@ export const createMarcador = async ({
     pinImagePath: pinImagePath ?? null,
     fotoUrl: fotoUrl ?? null,
     fotoPath: fotoPath ?? null,
-  });
+  };
+  if (esCapaDinamica(capa)) payload.coleccion = capa;
+  await addDoc(collection(db, col), payload);
 };
 
 // ── Actualizar marcador ───────────────────────────────────────────────────────
@@ -107,6 +128,12 @@ export const updateMarcador = async ({
   detalles,
   pinColor,
   seleccionado,
+  visitado,
+  direccion,
+  telefono,
+  zona,
+  red,
+  atendido,
   coords,
   userEmail,
   pinImageUrl,
@@ -114,7 +141,7 @@ export const updateMarcador = async ({
   fotoUrl,
   fotoPath,
 }) => {
-  const col = COLECCIONES[capa];
+  const col = esCapaDinamica(capa) ? COL_CUSTOM : COLECCIONES[capa];
   if (!col) throw new Error(`Capa desconocida: ${capa}`);
   await updateDoc(doc(db, col, id), {
     nombre,
@@ -127,6 +154,12 @@ export const updateMarcador = async ({
     detalles: detalles ?? null,
     pinColor: pinColor ?? null,
     seleccionado: seleccionado ?? false,
+    visitado: visitado ?? false,
+    direccion: direccion ?? null,
+    telefono: telefono ?? null,
+    zona: zona ?? null,
+    red: red ?? null,
+    atendido: atendido ?? false,
     coords: { lat: coords.lat, lng: coords.lng },
     ultimaEdicionPor: userEmail,
     fechaEdicion: fechaFormato(),
@@ -140,7 +173,7 @@ export const updateMarcador = async ({
 // ── Eliminar marcador (con papelera) ──────────────────────────────────────────
 
 export const deleteMarcador = async (capa, id, userEmail) => {
-  const col = COLECCIONES[capa];
+  const col = esCapaDinamica(capa) ? COL_CUSTOM : COLECCIONES[capa];
   if (!col) throw new Error(`Capa desconocida: ${capa}`);
   const ref_ = doc(db, col, id);
   const snap = await getDoc(ref_);

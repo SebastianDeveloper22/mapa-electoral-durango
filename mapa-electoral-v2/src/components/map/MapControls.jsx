@@ -10,8 +10,10 @@ const MapControls = ({
   onStatsClick,
   onAdminClick,
   onExportClick,
+  onNuevaCapaClick,
   isAdmin,
   isLector,
+  isPresidente,
 }) => {
   const { mapInstance, isSatellite, toggleSatellite } = useMapStore();
   const [streetViewActive, setStreetViewActive] = useState(false);
@@ -52,63 +54,78 @@ const MapControls = ({
       )}
 
       {/* Stack superior derecha — logout + admin + estadísticas */}
-      <div className="absolute top-4 right-4 z-20 flex flex-col gap-2">
+      <div className="absolute top-4 right-2 md:right-4 z-20 flex flex-col gap-1.5 md:gap-2">
         <button
           onClick={handleLogout}
-          className="bg-[#1e293b] border border-[#334155] text-slate-300 text-xs font-medium px-3 py-2 rounded-lg hover:bg-red-900/40 hover:border-red-500 hover:text-red-400 transition-colors cursor-pointer whitespace-nowrap"
+          title="Cerrar Sesión"
+          className="bg-[#1e293b] border border-[#334155] text-slate-300 text-xs font-medium px-2.5 md:px-3 py-2 rounded-lg hover:bg-red-900/40 hover:border-red-500 hover:text-red-400 transition-colors cursor-pointer whitespace-nowrap"
         >
-          Cerrar Sesión
+          <span className="hidden md:inline">Cerrar Sesión</span>
+          <span className="md:hidden">🚪</span>
         </button>
 
         {isAdmin && (
           <button
             onClick={onAdminClick}
-            className="flex items-center justify-center gap-1.5 bg-[#1e293b] border border-[#334155] text-slate-200 text-xs font-medium px-3 py-2 rounded-lg hover:bg-[#334155] transition-colors cursor-pointer whitespace-nowrap"
+            title="Admin"
+            className="flex items-center justify-center gap-1.5 bg-[#1e293b] border border-[#334155] text-slate-200 text-xs font-medium px-2.5 md:px-3 py-2 rounded-lg hover:bg-[#334155] transition-colors cursor-pointer whitespace-nowrap"
           >
-            🛡️ Admin
+            🛡️ <span className="hidden md:inline">Admin</span>
           </button>
         )}
 
-        {!isLector && (
+        {isAdmin && (
+          <button
+            onClick={onNuevaCapaClick}
+            title="Nueva Capa"
+            className="flex items-center justify-center gap-1.5 bg-[#1e293b] border border-[#334155] text-slate-200 text-xs font-medium px-2.5 md:px-3 py-2 rounded-lg hover:bg-blue-900/40 hover:border-blue-500 hover:text-blue-300 transition-colors cursor-pointer whitespace-nowrap"
+          >
+            🗂️ <span className="hidden md:inline">Nueva Capa</span>
+          </button>
+        )}
+
+        {!isLector && !isPresidente && (
           <button
             onClick={() => navigate("/electoral")}
-            className="flex items-center justify-center gap-1.5 bg-[#1e293b] border border-[#334155] text-slate-200 text-xs font-medium px-3 py-2 rounded-lg hover:bg-indigo-900/40 hover:border-indigo-500 hover:text-indigo-300 transition-colors cursor-pointer whitespace-nowrap"
+            title="Electoral"
+            className="flex items-center justify-center gap-1.5 bg-[#1e293b] border border-[#334155] text-slate-200 text-xs font-medium px-2.5 md:px-3 py-2 rounded-lg hover:bg-indigo-900/40 hover:border-indigo-500 hover:text-indigo-300 transition-colors cursor-pointer whitespace-nowrap"
           >
-            🗳️ Electoral
+            🗳️ <span className="hidden md:inline">Electoral</span>
           </button>
         )}
 
         <button
           onClick={onStatsClick}
-          className="flex items-center justify-center gap-1.5 bg-[#1e293b] border border-[#334155] text-slate-200 text-xs font-medium px-3 py-2 rounded-lg hover:bg-[#334155] transition-colors cursor-pointer whitespace-nowrap"
+          title="Estadísticas"
+          className="flex items-center justify-center gap-1.5 bg-[#1e293b] border border-[#334155] text-slate-200 text-xs font-medium px-2.5 md:px-3 py-2 rounded-lg hover:bg-[#334155] transition-colors cursor-pointer whitespace-nowrap"
         >
-          📊 Estadísticas
+          📊 <span className="hidden md:inline">Estadísticas</span>
         </button>
 
-        {!isLector && (
+        {!isLector && !isPresidente && (
           <button
             onClick={onExportClick}
-            title="Exportar resultados a PDF"
-            className="flex items-center justify-center gap-1.5 bg-[#1e293b] border border-[#334155] text-slate-200 text-xs font-medium px-3 py-2 rounded-lg hover:bg-emerald-900/40 hover:border-emerald-500 hover:text-emerald-400 transition-colors cursor-pointer whitespace-nowrap"
+            title="Exportar PDF"
+            className="flex items-center justify-center gap-1.5 bg-[#1e293b] border border-[#334155] text-slate-200 text-xs font-medium px-2.5 md:px-3 py-2 rounded-lg hover:bg-emerald-900/40 hover:border-emerald-500 hover:text-emerald-400 transition-colors cursor-pointer whitespace-nowrap"
           >
-            📄 Exportar PDF
+            📄 <span className="hidden md:inline">Exportar PDF</span>
           </button>
         )}
       </div>
 
       {/* Controles de vista — fondo izquierda, encima del atributo del mapa */}
-      <div className="absolute bottom-6 left-4 z-20 flex items-center gap-2">
+      <div className="absolute bottom-6 left-2 md:left-4 z-20 flex items-center gap-1.5 md:gap-2">
         {/* Satélite */}
         <button
           onClick={toggleSatellite}
           title={isSatellite ? "Volver a mapa" : "Ver satélite"}
-          className={`flex items-center gap-1.5 border text-xs font-semibold px-3 py-2 rounded-xl shadow-lg transition-colors cursor-pointer ${
+          className={`flex items-center gap-1 md:gap-1.5 border text-[11px] md:text-xs font-semibold px-2.5 md:px-3 py-1.5 md:py-2 rounded-xl shadow-lg transition-colors cursor-pointer ${
             isSatellite
               ? "bg-blue-600 border-blue-400 text-white"
               : "bg-[#1e293b]/95 border-[#334155] text-slate-200 hover:bg-[#334155]"
           }`}
         >
-          🛰️ <span>Satélite</span>
+          🛰️ <span className="hidden sm:inline">Satélite</span>
         </button>
 
         {/* Street View */}
@@ -121,7 +138,7 @@ const MapControls = ({
                 ? "Cerrar Street View"
                 : "Abrir Street View"
           }
-          className={`flex items-center gap-1.5 border text-xs font-semibold px-3 py-2 rounded-xl shadow-lg transition-colors cursor-pointer ${
+          className={`flex items-center gap-1 md:gap-1.5 border text-[11px] md:text-xs font-semibold px-2.5 md:px-3 py-1.5 md:py-2 rounded-xl shadow-lg transition-colors cursor-pointer ${
             streetViewActive
               ? "bg-amber-600 border-amber-400 text-white animate-pulse"
               : streetViewCoords
@@ -130,7 +147,7 @@ const MapControls = ({
           }`}
         >
           🚶‍♂️{" "}
-          <span>
+          <span className="hidden sm:inline">
             {streetViewActive
               ? "Click en el mapa..."
               : streetViewCoords
@@ -142,7 +159,7 @@ const MapControls = ({
 
       {/* Panel Street View embebido */}
       {streetViewCoords && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-[min(620px,calc(100vw-2rem))] h-[380px] z-30 flex flex-col rounded-2xl overflow-hidden shadow-[0_8px_40px_rgba(0,0,0,0.6)] border border-white/10 backdrop-blur-sm">
+        <div className="absolute bottom-2 md:bottom-4 left-1/2 -translate-x-1/2 w-[min(620px,calc(100vw-1rem))] h-[240px] sm:h-[300px] md:h-[380px] z-30 flex flex-col rounded-2xl overflow-hidden shadow-[0_8px_40px_rgba(0,0,0,0.6)] border border-white/10 backdrop-blur-sm">
           {/* Barra superior */}
           <div className="flex items-center justify-between px-4 py-2.5 bg-[#0f172a]/95 border-b border-white/10 shrink-0">
             <div className="flex items-center gap-2.5">

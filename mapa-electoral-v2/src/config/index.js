@@ -10,6 +10,7 @@ export const TIPOS_MARCADOR = [
   { value: "general", label: "Espectaculares Laguna" },
   { value: "capital", label: "Espectaculares Capital" },
   { value: "municipios", label: "Espectaculares Municipios" },
+  { value: "guardianes", label: "Guardianes del Camino" },
 ];
 
 // Distritos Locales de Durango capital
@@ -26,13 +27,53 @@ export const COLORES_MARCADOR = {
   general: "#94a3b8",
   capital: "#7c3aed",
   municipios: "#dc2626",
+  guardianes: "#ca8a04",  // Amarillo oscuro
 };
+
+// Redes para Guardianes del Camino (orden alfabético)
+export const REDES_GUARDIANES = [
+  "Aguas del Municipio (AMD)",
+  "Atencion Ciudadana",
+  "Ayuntamiento / Secretaria Municipal",
+  "Comunicacion Social",
+  "Contraloria",
+  "Desarrollo Rural",
+  "Desarrollo Social",
+  "Desarrollo Urbano",
+  "DIF",
+  "Finanzas",
+  "Fomento Economico",
+  "Gerencia Centro Historico",
+  "IMEPLAN",
+  "INDEHVAL",
+  "INMUJER",
+  "INMUVI",
+  "Inspectores",
+  "Juridico",
+  "Juzgado Civico",
+  "Medio Ambiente",
+  "Obras Publicas",
+  "Panteones",
+  "Parques",
+  "Proteccion Civil",
+  "Regidor Adla Karam",
+  "Regidor Alex Gurrola",
+  "Regidor Diego Flores",
+  "Regidor Gloria",
+  "Regidor Nacho Orrante",
+  "Salud Publica",
+  "Secretaria Tecnica",
+  "Seguridad Publica",
+  "Servicios Publicos",
+  "Zoologico",
+];
 
 // Roles del sistema
 export const ROLES = {
   LECTOR: "lector",
   EDITOR: "editor",
   ADMIN: "admin",
+  PRESIDENTE: "presidente",
 };
 
 // Municipios de Durango

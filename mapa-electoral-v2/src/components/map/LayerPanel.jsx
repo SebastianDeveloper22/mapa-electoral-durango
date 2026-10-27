@@ -1,6 +1,8 @@
 import { useEffect, useRef } from "react";
 import { useMapStore } from "../../store/mapStore";
-import { CAPAS, ANIOS, DISTRITOS_LOCALES, COLORES_MARCADOR } from "../../config";
+import { useAuthStore } from "../../store/authStore";
+import { useColeccionesStore } from "../../store/coleccionesStore";
+import { CAPAS, ANIOS, DISTRITOS_LOCALES, COLORES_MARCADOR, REDES_GUARDIANES, ROLES } from "../../config";
 
 const PIN_COLORS = {
   2023: "#f59e0b",
@@ -20,14 +22,20 @@ const CAPA_LABELS = {
 };
 
 const MARCADORES_EXTRA = [
-  { key: "rural",      label: "Rural",                   conDL: true,  conSelec: false },
-  { key: "top100",     label: "Top 100 Urbano",          conDL: true,  conSelec: false },
-  { key: "general",    label: "Espectaculares Laguna",   conDL: false, conSelec: true  },
-  { key: "capital",    label: "Espectaculares Capital",  conDL: false, conSelec: true  },
-  { key: "municipios", label: "Espectaculares Municipios", conDL: false, conSelec: true },
+  { key: "rural",      label: "Rural",                   conDL: true,  conSelec: false, conVisitado: true,  conAtendido: false, conRed: false },
+  { key: "top100",     label: "Top 100 Urbano",          conDL: true,  conSelec: false, conVisitado: true,  conAtendido: false, conRed: false },
+  { key: "general",    label: "Espectaculares Laguna",   conDL: false, conSelec: true,  conVisitado: false, conAtendido: false, conRed: false },
+  { key: "capital",    label: "Espectaculares Capital",  conDL: false, conSelec: true,  conVisitado: false, conAtendido: false, conRed: false },
+  { key: "municipios", label: "Espectaculares Municipios", conDL: false, conSelec: true, conVisitado: false, conAtendido: false, conRed: false },
+  { key: "guardianes", label: "Guardianes del Camino",   conDL: true,  conSelec: false, conVisitado: false, conAtendido: true,  conRed: true  },
 ];
 
+const ESPECTACULARES_KEYS = new Set(["general", "capital", "municipios"]);
+
 const LayerPanel = () => {
+  const { role } = useAuthStore();
+  const isPresidente = role === ROLES.PRESIDENTE;
+  const { coleccionesConfig } = useColeccionesStore();
   const {
     layerMenuOpen,
     toggleLayerMenu,
@@ -44,6 +52,12 @@ const LayerPanel = () => {
     toggleDL,
     filtroSeleccionado,
     toggleFiltroSeleccionado,
+    filtroVisitado,
+    toggleFiltroVisitado,
+    filtroAtendido,
+    toggleFiltroAtendido,
+    filtroRed,
+    setFiltroRed,
   } = useMapStore();
 
   const panelRef = useRef(null);
@@ -59,19 +73,19 @@ const LayerPanel = () => {
   }, [closeLayerMenu]);
 
   return (
-    <div ref={panelRef} className="absolute top-4 left-4 z-20">
+    <div ref={panelRef} className="absolute top-4 left-2 md:left-4 z-20">
       {/* Botón FAB */}
       <button
         onClick={toggleLayerMenu}
-        className="flex items-center gap-2 bg-[#1e293b] border border-[#334155] text-white text-sm font-medium px-4 py-2.5 rounded-xl shadow-lg hover:bg-[#334155] transition-colors cursor-pointer"
+        className="flex items-center gap-2 bg-[#1e293b] border border-[#334155] text-white text-sm font-medium px-3 md:px-4 py-2.5 rounded-xl shadow-lg hover:bg-[#334155] transition-colors cursor-pointer"
       >
         <span>🗺️</span>
-        <span>Capas</span>
+        <span className="hidden sm:inline">Capas</span>
       </button>
 
       {/* Panel desplegable */}
       {layerMenuOpen && (
-        <div className="mt-2 w-60 bg-[#1e293b] border border-[#334155] rounded-xl shadow-2xl p-4 flex flex-col gap-1 max-h-[80vh] overflow-y-auto">
+        <div className="mt-2 w-[calc(100vw-1rem)] sm:w-60 bg-[#1e293b] border border-[#334155] rounded-xl shadow-2xl p-3 md:p-4 flex flex-col gap-1 max-h-[75vh] md:max-h-[80vh] overflow-y-auto">
 
           {/* ── Cartografía Electoral ── */}
           <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">
@@ -139,7 +153,7 @@ const LayerPanel = () => {
             Marcadores Adicionales
           </h4>
 
-          {MARCADORES_EXTRA.map(({ key, label, conDL, conSelec }) => {
+          {MARCADORES_EXTRA.filter((m) => !(isPresidente && ESPECTACULARES_KEYS.has(m.key))).map(({ key, label, conDL, conSelec, conVisitado, conAtendido, conRed }) => {
             const color = COLORES_MARCADOR[key];
             const activo = marcadoresVisibles[key] !== false;
             return (
@@ -166,7 +180,7 @@ const LayerPanel = () => {
                     <span className="text-[10px] uppercase tracking-wider text-slate-500 mb-1">
                       Filtrar por Distrito
                     </span>
-                    {DISTRITOS_LOCALES.map((dl) => (
+                    {(key === "guardianes" ? DISTRITOS_LOCALES.slice(0, 6) : DISTRITOS_LOCALES).map((dl) => (
                       <label
                         key={dl}
                         className="flex items-center gap-2 cursor-pointer text-xs text-slate-300 hover:text-white transition-colors py-0.5"
@@ -199,9 +213,180 @@ const LayerPanel = () => {
                     </label>
                   </div>
                 )}
+
+                {/* Filtro "Solo visitados" para Rural y Top 100 */}
+                {conVisitado && activo && (
+                  <div className="ml-6 mt-0.5 mb-1">
+                    <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-300 hover:text-white transition-colors py-0.5">
+                      <input
+                        type="checkbox"
+                        checked={filtroVisitado[key] === true}
+                        onChange={() => toggleFiltroVisitado(key)}
+                        className="w-3 h-3 cursor-pointer"
+                        style={{ accentColor: color }}
+                      />
+                      Solo visitados
+                    </label>
+                  </div>
+                )}
+
+                {/* Filtro "Solo atendidos" para Guardianes */}
+                {conAtendido && activo && (
+                  <div className="ml-6 mt-0.5 mb-1">
+                    <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-300 hover:text-white transition-colors py-0.5">
+                      <input
+                        type="checkbox"
+                        checked={filtroAtendido[key] === true}
+                        onChange={() => toggleFiltroAtendido(key)}
+                        className="w-3 h-3 cursor-pointer"
+                        style={{ accentColor: color }}
+                      />
+                      Solo atendidos
+                    </label>
+                  </div>
+                )}
+
+                {/* Filtro por Red — Guardianes */}
+                {conRed && activo && (
+                  <div className="ml-6 mt-0.5 mb-2">
+                    <span className="text-[10px] uppercase tracking-wider text-slate-500 block mb-1">
+                      Filtrar por Red
+                    </span>
+                    <select
+                      value={filtroRed[key] || ""}
+                      onChange={(e) => setFiltroRed(key, e.target.value)}
+                      className="w-full bg-[#0f172a] border border-[#334155] text-slate-200 text-xs rounded-lg px-2 py-1.5 outline-none focus:border-slate-400 cursor-pointer"
+                    >
+                      <option value="">Todas las Redes</option>
+                      {REDES_GUARDIANES.map((r) => (
+                        <option key={r} value={r}>{r}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
             );
           })}
+
+          {/* ── Capas Personalizadas (dinámicas) ── */}
+          {coleccionesConfig.filter((c) => !(isPresidente && c.ocultarPresidente)).length > 0 && (
+            <>
+              <hr className="border-[#334155] my-2" />
+              <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">
+                Capas Personalizadas
+              </h4>
+
+              {coleccionesConfig
+                .filter((c) => !(isPresidente && c.ocultarPresidente))
+                .map((cfg) => {
+                  const { key, label: lbl, color, campos = [], dlMax = 15 } = cfg;
+                  const activo   = marcadoresVisibles[key] !== false;
+                  const conDL    = campos.includes("distritoLocal");
+                  const conVisit = campos.includes("visitado");
+                  const conAtend = campos.includes("atendido");
+                  const conSelec = campos.includes("seleccionado");
+                  const conRed   = campos.includes("red");
+                  const dlLista  = dlMax === 6 ? DISTRITOS_LOCALES.slice(0, 6) : DISTRITOS_LOCALES;
+                  return (
+                    <div key={key} className="flex flex-col">
+                      <label className="flex items-center gap-2.5 py-1 cursor-pointer hover:text-white transition-colors text-sm text-slate-200">
+                        <input
+                          type="checkbox"
+                          checked={activo}
+                          onChange={() => toggleMarcador(key)}
+                          className="w-3.5 h-3.5 cursor-pointer shrink-0"
+                          style={{ accentColor: color }}
+                        />
+                        <span
+                          className="inline-block w-2.5 h-2.5 rounded-full shrink-0"
+                          style={{ backgroundColor: color, opacity: activo ? 1 : 0.35 }}
+                        />
+                        {lbl}
+                      </label>
+
+                      {conDL && activo && (
+                        <div className="ml-6 mt-0.5 mb-1 flex flex-col gap-0.5">
+                          <span className="text-[10px] uppercase tracking-wider text-slate-500 mb-1">Filtrar por Distrito</span>
+                          {dlLista.map((dl) => (
+                            <label key={dl} className="flex items-center gap-2 cursor-pointer text-xs text-slate-300 hover:text-white transition-colors py-0.5">
+                              <input
+                                type="checkbox"
+                                checked={filtrosDL[key]?.[dl] !== false}
+                                onChange={() => toggleDL(key, dl)}
+                                className="w-3 h-3 cursor-pointer"
+                                style={{ accentColor: color }}
+                              />
+                              {dl}
+                            </label>
+                          ))}
+                        </div>
+                      )}
+
+                      {conSelec && activo && (
+                        <div className="ml-6 mt-0.5 mb-1">
+                          <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-300 hover:text-white transition-colors py-0.5">
+                            <input
+                              type="checkbox"
+                              checked={filtroSeleccionado[key] === true}
+                              onChange={() => toggleFiltroSeleccionado(key)}
+                              className="w-3 h-3 cursor-pointer"
+                              style={{ accentColor: color }}
+                            />
+                            Solo seleccionados
+                          </label>
+                        </div>
+                      )}
+
+                      {conVisit && activo && (
+                        <div className="ml-6 mt-0.5 mb-1">
+                          <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-300 hover:text-white transition-colors py-0.5">
+                            <input
+                              type="checkbox"
+                              checked={filtroVisitado[key] === true}
+                              onChange={() => toggleFiltroVisitado(key)}
+                              className="w-3 h-3 cursor-pointer"
+                              style={{ accentColor: color }}
+                            />
+                            Solo visitados
+                          </label>
+                        </div>
+                      )}
+
+                      {conAtend && activo && (
+                        <div className="ml-6 mt-0.5 mb-1">
+                          <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-300 hover:text-white transition-colors py-0.5">
+                            <input
+                              type="checkbox"
+                              checked={filtroAtendido[key] === true}
+                              onChange={() => toggleFiltroAtendido(key)}
+                              className="w-3 h-3 cursor-pointer"
+                              style={{ accentColor: color }}
+                            />
+                            Solo atendidos
+                          </label>
+                        </div>
+                      )}
+
+                      {conRed && activo && (
+                        <div className="ml-6 mt-0.5 mb-2">
+                          <span className="text-[10px] uppercase tracking-wider text-slate-500 block mb-1">Filtrar por Red</span>
+                          <select
+                            value={filtroRed[key] || ""}
+                            onChange={(e) => setFiltroRed(key, e.target.value)}
+                            className="w-full bg-[#0f172a] border border-[#334155] text-slate-200 text-xs rounded-lg px-2 py-1.5 outline-none focus:border-slate-400 cursor-pointer"
+                          >
+                            <option value="">Todas las Redes</option>
+                            {REDES_GUARDIANES.map((r) => (
+                              <option key={r} value={r}>{r}</option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+            </>
+          )}
 
           <hr className="border-[#334155] my-2" />
 

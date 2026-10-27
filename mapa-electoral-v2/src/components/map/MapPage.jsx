@@ -7,16 +7,22 @@ import PinLayer from "../obras/PinLayer";
 import ObraModal from "../obras/ObraModal";
 import StatsModal from "../obras/StatsModal";
 import AdminPanel from "../admin/AdminPanel";
+import ColeccionCreadorModal from "../admin/ColeccionCreadorModal";
 import ExportarPDFModal from "../electoral/ExportarPDFModal";
 import { useAuthStore } from "../../store/authStore";
 import { ROLES } from "../../config";
+import { useColecciones } from "../../hooks/useColecciones";
 
 const MapPage = () => {
   const { role } = useAuthStore();
-  const isAdmin = role === ROLES.ADMIN;
+  const isAdmin      = role === ROLES.ADMIN;
+  const isPresidente = role === ROLES.PRESIDENTE;
+
+  useColecciones();
 
   const [statsOpen, setStatsOpen] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
+  const [nuevaCapaOpen, setNuevaCapaOpen] = useState(false);
   const [exportPDFOpen, setExportPDFOpen] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
 
@@ -37,8 +43,10 @@ const MapPage = () => {
       <MapControls
         isAdmin={isAdmin}
         isLector={role === ROLES.LECTOR}
+        isPresidente={isPresidente}
         onStatsClick={() => setStatsOpen(true)}
         onAdminClick={() => setAdminOpen(true)}
+        onNuevaCapaClick={() => setNuevaCapaOpen(true)}
         onExportClick={() => setExportPDFOpen(true)}
       />
 
@@ -48,6 +56,9 @@ const MapPage = () => {
 
       {/* Panel Admin */}
       <AdminPanel open={adminOpen} onClose={() => setAdminOpen(false)} />
+
+      {/* Modal Nueva Capa */}
+      <ColeccionCreadorModal open={nuevaCapaOpen} onClose={() => setNuevaCapaOpen(false)} />
 
       {/* Modal exportar PDF */}
       <ExportarPDFModal

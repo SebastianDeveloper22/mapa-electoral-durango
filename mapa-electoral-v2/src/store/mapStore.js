@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { ANIOS, DISTRITOS_LOCALES } from '../config';
 
+
 // Estado inicial de filtros DL para rural y top100
 const dlInicial = DISTRITOS_LOCALES.reduce((acc, dl) => ({ ...acc, [dl]: true }), {});
 
@@ -32,7 +33,7 @@ export const useMapStore = create((set) => ({
   toggleLabels: () => set((state) => ({ labelsVisible: !state.labelsVisible })),
 
   // Años de PP visibles
-  aniosVisibles: ANIOS.reduce((acc, a) => ({ ...acc, [a]: true }), {}),
+  aniosVisibles: ANIOS.reduce((acc, a) => ({ ...acc, [a]: false }), {}),
   toggleAnio: (anio) =>
     set((state) => ({
       aniosVisibles: {
@@ -43,11 +44,12 @@ export const useMapStore = create((set) => ({
 
   // Visibilidad de capas de marcadores adicionales
   marcadoresVisibles: {
-    rural: true,
-    top100: true,
-    general: true,
-    capital: true,
-    municipios: true,
+    rural: false,
+    top100: false,
+    general: false,
+    capital: false,
+    municipios: false,
+    guardianes: false,
   },
   toggleMarcador: (capa) =>
     set((state) => ({
@@ -57,10 +59,11 @@ export const useMapStore = create((set) => ({
       },
     })),
 
-  // Filtros por Distrito Local (solo para rural y top100)
+  // Filtros por Distrito Local (rural, top100 y guardianes)
   filtrosDL: {
     rural: { ...dlInicial },
     top100: { ...dlInicial },
+    guardianes: { ...dlInicial },
   },
   toggleDL: (capa, dl) =>
     set((state) => ({
@@ -87,6 +90,43 @@ export const useMapStore = create((set) => ({
       },
     })),
 
+  // Filtro "solo visitados" por capa Rural / Top 100
+  filtroVisitado: {
+    rural: false,
+    top100: false,
+  },
+  toggleFiltroVisitado: (capa) =>
+    set((state) => ({
+      filtroVisitado: {
+        ...state.filtroVisitado,
+        [capa]: !state.filtroVisitado[capa],
+      },
+    })),
+
+  // Filtro "solo atendidos" — Guardianes del Camino
+  filtroAtendido: {
+    guardianes: false,
+  },
+  toggleFiltroAtendido: (capa) =>
+    set((state) => ({
+      filtroAtendido: {
+        ...state.filtroAtendido,
+        [capa]: !state.filtroAtendido[capa],
+      },
+    })),
+
+  // Filtro por Red — Guardianes del Camino ("" = todas)
+  filtroRed: {
+    guardianes: "",
+  },
+  setFiltroRed: (capa, red) =>
+    set((state) => ({
+      filtroRed: {
+        ...state.filtroRed,
+        [capa]: red,
+      },
+    })),
+
   // Filtro rápido por tipo de obra (PP)
   filtroTipo: 'all',
   setFiltroTipo: (tipo) => set({ filtroTipo: tipo }),
@@ -99,4 +139,26 @@ export const useMapStore = create((set) => ({
   layerMenuOpen: false,
   toggleLayerMenu: () => set((state) => ({ layerMenuOpen: !state.layerMenuOpen })),
   closeLayerMenu: () => set({ layerMenuOpen: false }),
+
+  // Inicializar estado de filtros para una colección dinámica (idempotente)
+  addColeccionDinamica: (config) =>
+    set((state) => {
+      const { key, campos = [] } = config;
+      // No sobreescribir si ya existe
+      if (key in state.marcadoresVisibles) return {};
+      const conDL     = campos.includes("distritoLocal");
+      const conVisit  = campos.includes("visitado");
+      const conAtend  = campos.includes("atendido");
+      const conSelec  = campos.includes("seleccionado");
+      const conRed    = campos.includes("red");
+      const dlInicial = DISTRITOS_LOCALES.reduce((acc, dl) => ({ ...acc, [dl]: true }), {});
+      return {
+        marcadoresVisibles: { ...state.marcadoresVisibles, [key]: false },
+        filtrosDL:          conDL    ? { ...state.filtrosDL,          [key]: { ...dlInicial } } : state.filtrosDL,
+        filtroVisitado:     conVisit ? { ...state.filtroVisitado,     [key]: false }            : state.filtroVisitado,
+        filtroAtendido:     conAtend ? { ...state.filtroAtendido,     [key]: false }            : state.filtroAtendido,
+        filtroSeleccionado: conSelec ? { ...state.filtroSeleccionado, [key]: false }            : state.filtroSeleccionado,
+        filtroRed:          conRed   ? { ...state.filtroRed,          [key]: "" }               : state.filtroRed,
+      };
+    }),
 }));

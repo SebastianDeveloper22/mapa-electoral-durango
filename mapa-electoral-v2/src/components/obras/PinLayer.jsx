@@ -4,6 +4,7 @@ import maplibregl from "maplibre-gl";
 import { useMapStore } from "../../store/mapStore";
 import { useObrasStore } from "../../store/obrasStore";
 import { useAuthStore } from "../../store/authStore";
+import { useColeccionesStore } from "../../store/coleccionesStore";
 import { getObras, deleteObra } from "../../services/obrasService";
 import { getMarcadoresTodos, deleteMarcador } from "../../services/marcadoresService";
 import { useToast } from "../ui/Toast";
@@ -194,12 +195,14 @@ const CAPA_LABELS = {
   general: "Espectaculares Laguna",
   capital: "Espectaculares Capital",
   municipios: "Espectaculares Municipios",
+  guardianes: "Guardianes del Camino",
 };
 
 const crearHTMLPopupMarcador = (m, role) => {
   const {
     id, capa, nombre, tipo, distritoLocal, seccion, zonaElectoral,
     referencia, participacion, detalles, coords, creadoPor, fechaCreacion, fotoUrl,
+    direccion, telefono, zona, red, atendido,
   } = m;
   const googleUrl = `https://www.google.com/maps?q=${coords.lat},${coords.lng}`;
   const canEdit = role === ROLES.ADMIN || role === ROLES.EDITOR;
@@ -231,6 +234,21 @@ const crearHTMLPopupMarcador = (m, role) => {
   const detRow = detalles
     ? `<div class="pin-popup-row"><span class="pin-key">Detalles</span><span class="pin-val">${escHTML(detalles)}</span></div>`
     : "";
+  const dirRow = direccion
+    ? `<div class="pin-popup-row"><span class="pin-key">Dirección</span><span class="pin-val">${escHTML(direccion)}</span></div>`
+    : "";
+  const telRow = telefono
+    ? `<div class="pin-popup-row"><span class="pin-key">Teléfono</span><span class="pin-val">${escHTML(telefono)}</span></div>`
+    : "";
+  const zonaRow2 = zona
+    ? `<div class="pin-popup-row"><span class="pin-key">Zona</span><span class="pin-val">${escHTML(zona)}</span></div>`
+    : "";
+  const redRow = red
+    ? `<div class="pin-popup-row"><span class="pin-key">Red</span><span class="pin-val">${escHTML(red)}</span></div>`
+    : "";
+  const atendidoRow = capa === "guardianes"
+    ? `<div class="pin-popup-row"><span class="pin-key">Atendido</span><span class="pin-val">${atendido ? "Sí" : "No"}</span></div>`
+    : "";
   const fotoThumb = fotoUrl
     ? `<img src="${escHTML(fotoUrl)}" class="pin-foto-thumb" data-foto="${escHTML(fotoUrl)}"
         style="width:100%;height:90px;object-fit:cover;border-radius:8px;margin-bottom:8px;cursor:zoom-in;display:block;" />`
@@ -240,7 +258,7 @@ const crearHTMLPopupMarcador = (m, role) => {
       <div class="pin-popup-header">${escHTML(CAPA_LABELS[capa] ?? capa)}</div>
       ${fotoThumb}
       <div class="pin-popup-body">
-        ${nombreRow}${tipoRow}${dlRow}${secRow}${zonaRow}${refRow}${partRow}${detRow}
+        ${nombreRow}${tipoRow}${dlRow}${secRow}${zonaRow}${refRow}${partRow}${detRow}${dirRow}${telRow}${zonaRow2}${redRow}${atendidoRow}
       </div>
       <div class="pin-popup-actions">
         <a href="${googleUrl}" target="_blank" class="pin-btn pin-route">🗺️ Ubicación</a>
@@ -261,10 +279,19 @@ const PinLayer = ({ reloadTrigger, onReload }) => {
     marcadoresVisibles,
     filtrosDL,
     filtroSeleccionado,
+    filtroVisitado,
+    filtroAtendido,
+    filtroRed,
   } = useMapStore();
   const { openModalEditar, setObras, setMarcadorEditando, setExtras } = useObrasStore();
   const { role, user } = useAuthStore();
+  const { coleccionesConfig } = useColeccionesStore();
+  const isPresidente = role === ROLES.PRESIDENTE;
   const toast = useToast();
+
+  // Ref para acceder a coleccionesConfig dentro de callbacks sin agregarlos como dep
+  const coleccionesRef = useRef(coleccionesConfig);
+  useEffect(() => { coleccionesRef.current = coleccionesConfig; }, [coleccionesConfig]);
 
   const marcadoresRef = useRef([]);   // { marker, capa, anio, dl }
   const todosRef = useRef([]);        // todos los objetos cargados
@@ -310,8 +337,17 @@ const PinLayer = ({ reloadTrigger, onReload }) => {
         setObras(obras);
 
         // Agrupar extras por capa y guardar en store (evita doble fetch en StatsModal)
-        const extrasAgrupados = { rural: [], top100: [], general: [], capital: [], municipios: [] };
-        extrasArr.forEach((m) => { if (extrasAgrupados[m.capa]) extrasAgrupados[m.capa].push(m); });
+        const extrasAgrupados = { rural: [], top100: [], general: [], capital: [], municipios: [], guardianes: [] };
+        // Agregar claves para colecciones dinámicas
+        coleccionesRef.current.forEach(({ key }) => { if (!extrasAgrupados[key]) extrasAgrupados[key] = []; });
+        extrasArr.forEach((m) => {
+          if (extrasAgrupados[m.capa] !== undefined) {
+            extrasAgrupados[m.capa].push(m);
+          } else {
+            // capa dinámica aún no registrada en el ref (carga concurrente)
+            extrasAgrupados[m.capa] = [m];
+          }
+        });
         setExtras(extrasAgrupados);
 
         todosRef.current = [
@@ -331,8 +367,12 @@ const PinLayer = ({ reloadTrigger, onReload }) => {
             pinColor = PIN_COLORS_ANIO[anio] || PIN_DEFAULT;
           } else if (capa === "general" || capa === "capital" || capa === "municipios") {
             pinColor = item.pinColor || PIN_DEFAULT;
+          } else if (COLORES_MARCADOR[capa]) {
+            pinColor = COLORES_MARCADOR[capa];
           } else {
-            pinColor = COLORES_MARCADOR[capa] || PIN_DEFAULT;
+            // Capa dinámica: usar el color definido en la config
+            const cfgDin = coleccionesRef.current.find((c) => c.key === capa);
+            pinColor = (item.pinColor) || cfgDin?.color || PIN_DEFAULT;
           }
 
           const el = pinImageUrl
@@ -353,6 +393,12 @@ const PinLayer = ({ reloadTrigger, onReload }) => {
             .replace(/[\u0300-\u036f]/g, "");
           el.dataset.id = item.id;
           el.dataset.seleccionado = item.seleccionado ? "1" : "0";
+          el.dataset.visitado = item.visitado ? "1" : "0";
+          el.dataset.atendido = item.atendido ? "1" : "0";
+          el.dataset.red = (item.red || "")
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "");
 
           if (pinImageUrl) {
             aplicarDimensionesPin(el, escalaParaZoom(mapInstance.getZoom()));
@@ -416,21 +462,63 @@ const PinLayer = ({ reloadTrigger, onReload }) => {
           aniosVisibles[anio] !== false &&
           (filtroLimpio === "all" || tipoPin.includes(filtroLimpio));
       } else if (capa === "rural" || capa === "top100") {
+        const soloVisitado = filtroVisitado[capa] === true;
+        const estaVisitado = el.dataset.visitado === "1";
         visible =
           marcadoresVisibles[capa] !== false &&
-          filtrosDL[capa]?.[dl] !== false;
+          filtrosDL[capa]?.[dl] !== false &&
+          (!soloVisitado || estaVisitado);
       } else if (esEspectacular) {
-        const soloSelec = filtroSeleccionado[capa] === true;
-        const estaSelec = el.dataset.seleccionado === "1";
+        if (isPresidente) { visible = false; }
+        else {
+          const soloSelec = filtroSeleccionado[capa] === true;
+          const estaSelec = el.dataset.seleccionado === "1";
+          visible = marcadoresVisibles[capa] !== false && (!soloSelec || estaSelec);
+        }
+      } else if (capa === "guardianes") {
+        const soloAtendido = filtroAtendido[capa] === true;
+        const estaAtendido = el.dataset.atendido === "1";
+        const redFiltro = (filtroRed[capa] || "")
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "");
+        const redPin = el.dataset.red;
         visible =
-          marcadoresVisibles[capa] !== false && (!soloSelec || estaSelec);
+          marcadoresVisibles[capa] !== false &&
+          filtrosDL[capa]?.[dl] !== false &&
+          (!soloAtendido || estaAtendido) &&
+          (!redFiltro || redPin === redFiltro);
       } else {
-        visible = marcadoresVisibles[capa] !== false;
+        // Capa dinámica
+        const cfgDin = coleccionesRef.current.find((c) => c.key === capa);
+        if (!cfgDin) { visible = false; }
+        else if (cfgDin.ocultarPresidente && isPresidente) { visible = false; }
+        else {
+          const camposDin = cfgDin.campos ?? [];
+          visible = marcadoresVisibles[capa] !== false;
+          if (visible && camposDin.includes("distritoLocal")) {
+            visible = filtrosDL[capa]?.[dl] !== false;
+          }
+          if (visible && camposDin.includes("visitado") && filtroVisitado[capa] === true) {
+            visible = el.dataset.visitado === "1";
+          }
+          if (visible && camposDin.includes("atendido") && filtroAtendido[capa] === true) {
+            visible = el.dataset.atendido === "1";
+          }
+          if (visible && camposDin.includes("seleccionado") && filtroSeleccionado[capa] === true) {
+            visible = el.dataset.seleccionado === "1";
+          }
+          if (visible && camposDin.includes("red")) {
+            const redFiltro = (filtroRed[capa] || "")
+              .toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            if (redFiltro) visible = el.dataset.red === redFiltro;
+          }
+        }
       }
 
       el.style.display = visible ? "" : "none";
     });
-  }, [aniosVisibles, filtroTipo, marcadoresVisibles, filtrosDL, filtroSeleccionado]);
+  }, [aniosVisibles, filtroTipo, marcadoresVisibles, filtrosDL, filtroSeleccionado, filtroVisitado, filtroAtendido, filtroRed, isPresidente]);
 
   useEffect(() => {
     aplicarFiltros();
@@ -491,6 +579,12 @@ const PinLayer = ({ reloadTrigger, onReload }) => {
           capa,
           pinColor: item.pinColor ?? null,
           seleccionado: item.seleccionado ?? false,
+          visitado: item.visitado ?? false,
+          direccion: item.direccion ?? "",
+          telefono: item.telefono ?? "",
+          zona: item.zona ?? "",
+          red: item.red ?? "",
+          atendido: item.atendido ?? false,
           pinImageUrl: item.pinImageUrl ?? null,
           pinImagePath: item.pinImagePath ?? null,
           fotoUrl: item.fotoUrl ?? null,

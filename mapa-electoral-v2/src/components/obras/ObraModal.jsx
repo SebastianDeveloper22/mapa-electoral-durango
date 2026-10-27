@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useObrasStore } from "../../store/obrasStore";
 import { useAuthStore } from "../../store/authStore";
+import { useColeccionesStore } from "../../store/coleccionesStore";
 import { useToast } from "../ui/Toast";
 import {
   createObra,
@@ -19,6 +20,7 @@ import {
   TIPOS_MARCADOR,
   DISTRITOS_LOCALES,
   SECCIONES,
+  REDES_GUARDIANES,
 } from "../../config";
 
 // ── Dropzone / imagen compartida ────────────────────────────────────────────
@@ -170,6 +172,7 @@ const ObraModal = ({ onSaved }) => {
     marcadorEditando, setMarcadorEditando,
   } = useObrasStore();
   const { user } = useAuthStore();
+  const { coleccionesConfig } = useColeccionesStore();
   const toast = useToast();
 
   // Selector de capa (solo editable al crear)
@@ -194,6 +197,16 @@ const ObraModal = ({ onSaved }) => {
   // Checkbox seleccionado (capas Espectaculares)
   const [seleccionado, setSeleccionado] = useState(false);
 
+  // Checkbox visitado (Rural / Top 100)
+  const [visitado, setVisitado] = useState(false);
+
+  // Campos Guardianes del Camino
+  const [direccion, setDireccion] = useState("");
+  const [telefono, setTelefono] = useState("");
+  const [zona, setZona] = useState("");
+  const [red, setRed] = useState("");
+  const [atendido, setAtendido] = useState(false);
+
   const [saving, setSaving] = useState(false);
   const imagen = useImagen();
   const foto = useImagen();
@@ -213,6 +226,12 @@ const ObraModal = ({ onSaved }) => {
     setDetalles("");
     setPinColor("#94a3b8");
     setSeleccionado(false);
+    setVisitado(false);
+    setDireccion("");
+    setTelefono("");
+    setZona("");
+    setRed("");
+    setAtendido(false);
     imagen.reset();
     foto.reset();
   }, [modalOpen, editandoId]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -233,6 +252,12 @@ const ObraModal = ({ onSaved }) => {
     setDetalles(m.detalles ?? "");
     setPinColor(m.pinColor ?? "#94a3b8");
     setSeleccionado(m.seleccionado ?? false);
+    setVisitado(m.visitado ?? false);
+    setDireccion(m.direccion ?? "");
+    setTelefono(m.telefono ?? "");
+    setZona(m.zona ?? "");
+    setRed(m.red ?? "");
+    setAtendido(m.atendido ?? false);
     imagen.cargar({ pinImageUrl: m.pinImageUrl, pinImagePath: m.pinImagePath });
     foto.cargar({ pinImageUrl: m.fotoUrl, pinImagePath: m.fotoPath });
     // Limpiar para no re-disparar si el componente se re-renderiza
@@ -241,14 +266,29 @@ const ObraModal = ({ onSaved }) => {
 
   // ── Guardar ────────────────────────────────────────────────────────────────
   const handleSave = useCallback(async () => {
-    const requiereNombreTipo = capa === "pp" || capa === "general" || capa === "capital" || capa === "municipios";
-    if (requiereNombreTipo && (!nombre.trim() || !tipo.trim())) {
-      toast("Por favor, completa Nombre y Tipo.", "warning");
-      return;
-    }
-    if (capa !== "pp" && !distritoLocal) {
-      toast("Selecciona un Distrito Local.", "warning");
-      return;
+    const cfgCapa = coleccionesConfig.find((c) => c.key === capa) ?? null;
+    const camposCapa = cfgCapa?.campos ?? [];
+    const esCapaDin = !!cfgCapa;
+
+    if (esCapaDin) {
+      if (!nombre.trim()) {
+        toast("Por favor, completa el Nombre.", "warning");
+        return;
+      }
+    } else {
+      const requiereNombreTipo = capa === "pp" || capa === "general" || capa === "capital" || capa === "municipios";
+      if (requiereNombreTipo && (!nombre.trim() || !tipo.trim())) {
+        toast("Por favor, completa Nombre y Tipo.", "warning");
+        return;
+      }
+      if (capa === "guardianes" && !nombre.trim()) {
+        toast("Por favor, completa el Nombre.", "warning");
+        return;
+      }
+      if (capa !== "pp" && !distritoLocal) {
+        toast("Selecciona un Distrito Local.", "warning");
+        return;
+      }
     }
 
     setSaving(true);
@@ -325,20 +365,62 @@ const ObraModal = ({ onSaved }) => {
           });
           toast("Obra registrada correctamente.", "success");
         }
-      } else {
-        // ── Marcadores Rural / Top100 / General ──
+      } else if (esCapaDin) {
+        // ── Marcadores de capa dinámica ──
+        const has = (f) => camposCapa.includes(f);
         const payload = {
           capa,
           nombre,
-          tipo,
+          tipo:          has("tipo")          ? (tipo || null)                     : null,
+          distritoLocal: has("distritoLocal") ? (distritoLocal || null)            : null,
+          seccion:       has("seccion")       ? (seccion || null)                  : null,
+          zonaElectoral: has("zonaElectoral") ? (zonaElectoral || null)            : null,
+          referencia:    has("referencia")    ? (referencia || null)               : null,
+          participacion: has("participacion") ? (parseFloat(participacion) || null) : null,
+          detalles:      has("detalles")      ? (detalles || null)                 : null,
+          pinColor:      has("pinColor")      ? pinColor                           : null,
+          seleccionado:  has("seleccionado")  ? seleccionado                       : false,
+          visitado:      has("visitado")      ? visitado                           : false,
+          direccion:     has("direccion")     ? (direccion || null)                : null,
+          telefono:      has("telefono")      ? (telefono || null)                 : null,
+          zona:          has("zona")          ? (zona || null)                     : null,
+          red:           has("red")           ? (red || null)                      : null,
+          atendido:      has("atendido")      ? atendido                           : false,
+          coords: coordsTemporales,
+          userEmail,
+          pinImageUrl,
+          pinImagePath,
+          fotoUrl,
+          fotoPath,
+        };
+        if (editandoId) {
+          await updateMarcador({ ...payload, id: editandoId });
+          toast("Marcador actualizado correctamente.", "success");
+        } else {
+          await createMarcador(payload);
+          toast("Marcador registrado correctamente.", "success");
+        }
+      } else {
+        // ── Marcadores Rural / Top100 / General ──
+        const esEspectacular = capa === "general" || capa === "capital" || capa === "municipios";
+        const payload = {
+          capa,
+          nombre,
+          tipo: capa === "guardianes" ? null : tipo,
           distritoLocal: distritoLocal || null,
           seccion: seccion || null,
           zonaElectoral: (capa === "rural" || capa === "top100") ? (zonaElectoral || null) : null,
           referencia: (capa === "rural" || capa === "top100") ? (referencia || null) : null,
           participacion: (capa === "rural" || capa === "top100") ? (parseFloat(participacion) || null) : null,
           detalles: detalles || null,
-          pinColor: (capa === "general" || capa === "capital" || capa === "municipios") ? pinColor : null,
-          seleccionado: (capa === "general" || capa === "capital" || capa === "municipios") ? seleccionado : null,
+          pinColor: esEspectacular ? pinColor : null,
+          seleccionado: esEspectacular ? seleccionado : null,
+          visitado: (capa === "rural" || capa === "top100") ? visitado : null,
+          direccion: capa === "guardianes" ? (direccion || null) : null,
+          telefono: capa === "guardianes" ? (telefono || null) : null,
+          zona: capa === "guardianes" ? (zona || null) : null,
+          red: capa === "guardianes" ? (red || null) : null,
+          atendido: capa === "guardianes" ? atendido : null,
           coords: coordsTemporales,
           userEmail,
           pinImageUrl,
@@ -369,23 +451,27 @@ const ObraModal = ({ onSaved }) => {
     }
   }, [
     capa, nombre, tipo, anio, distritoLocal, seccion, zonaElectoral, referencia, participacion, detalles,
-    pinColor, seleccionado, imagen, foto, editandoId, coordsTemporales, user, toast, closeModal, onSaved,
+    pinColor, seleccionado, visitado, direccion, telefono, zona, red, atendido,
+    imagen, foto, editandoId, coordsTemporales, user, toast, closeModal, onSaved, coleccionesConfig,
   ]);
 
   if (!modalOpen) return null;
 
   const esEdicion = !!editandoId;
   const capaActiva = esEdicion ? (editandoCapa ?? capa) : capa;
+  const cfgActiva = coleccionesConfig.find((c) => c.key === capaActiva) ?? null;
+  const camposActivos = cfgActiva?.campos ?? [];
+  const has = (f) => camposActivos.includes(f);
 
   const tituloModal = esEdicion
-    ? `✏️ Editar ${TIPOS_MARCADOR.find((t) => t.value === capaActiva)?.label ?? "Marcador"}`
+    ? `✏️ Editar ${TIPOS_MARCADOR.find((t) => t.value === capaActiva)?.label ?? cfgActiva?.label ?? "Marcador"}`
     : "📍 Nuevo Marcador";
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="w-full max-w-sm bg-[#1e293b] border border-[#334155] rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4">
+      <div className="w-full sm:max-w-sm bg-[#1e293b] border border-[#334155] rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[92vh] sm:max-h-[90vh]">
         {/* Header */}
-        <div className="px-6 pt-5 pb-4 border-b border-[#334155] shrink-0">
+        <div className="px-4 sm:px-6 pt-4 sm:pt-5 pb-3 sm:pb-4 border-b border-[#334155] shrink-0">
           <h3 className="text-base font-semibold text-white">{tituloModal}</h3>
           <p className="text-xs text-slate-400 mt-0.5">
             Ingresa los detalles del marcador en esta ubicación.
@@ -393,7 +479,7 @@ const ObraModal = ({ onSaved }) => {
         </div>
 
         {/* Cuerpo scrollable */}
-        <div className="overflow-y-auto flex-1 px-6 py-5 flex flex-col gap-4">
+        <div className="overflow-y-auto flex-1 px-4 sm:px-6 py-4 sm:py-5 flex flex-col gap-4">
 
           {/* Selector de capa (solo al crear) */}
           {!esEdicion && (
@@ -415,12 +501,26 @@ const ObraModal = ({ onSaved }) => {
                     {label}
                   </button>
                 ))}
+                {coleccionesConfig.map(({ key, label: lbl, color }) => (
+                  <button
+                    key={key}
+                    onClick={() => setCapa(key)}
+                    className={`text-xs font-medium py-2 px-3 rounded-lg border transition-colors cursor-pointer ${
+                      capa === key
+                        ? "border-2 text-white"
+                        : "bg-[#0f172a] border-[#334155] text-slate-300 hover:border-slate-400"
+                    }`}
+                    style={capa === key ? { backgroundColor: color + "33", borderColor: color, color } : {}}
+                  >
+                    {lbl}
+                  </button>
+                ))}
               </div>
             </div>
           )}
 
-          {/* Nombre — PP y capas Espectaculares */}
-          {(capaActiva === "pp" || capaActiva === "general" || capaActiva === "capital" || capaActiva === "municipios") && (
+          {/* Nombre — PP, Espectaculares, Guardianes y capas dinámicas */}
+          {(capaActiva === "pp" || capaActiva === "general" || capaActiva === "capital" || capaActiva === "municipios" || capaActiva === "guardianes" || cfgActiva) && (
             <div>
               <label className="block text-xs font-medium text-slate-300 mb-1.5 uppercase tracking-wider">
                 Nombre
@@ -475,8 +575,117 @@ const ObraModal = ({ onSaved }) => {
             </div>
           )}
 
-          {/* Campos Rural / Top100 / General */}
-          {capaActiva !== "pp" && (
+          {/* Campos dinámicos para capas personalizadas */}
+          {cfgActiva && (
+            <>
+              {has("tipo") && (
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1.5 uppercase tracking-wider">Tipo</label>
+                  <input type="text" value={tipo} onChange={(e) => setTipo(e.target.value)} placeholder="Ej. Categoría..." className="w-full bg-[#0f172a] border border-[#334155] text-white rounded-lg px-3 py-2.5 text-sm outline-none focus:border-blue-500 transition-colors placeholder:text-slate-600" />
+                </div>
+              )}
+              {has("distritoLocal") && (
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1.5 uppercase tracking-wider">Distrito Local</label>
+                  <select value={distritoLocal} onChange={(e) => setDistritoLocal(e.target.value)} className="w-full bg-[#0f172a] border border-[#334155] text-white rounded-lg px-3 py-2.5 text-sm outline-none focus:border-blue-500 cursor-pointer">
+                    <option value="">Seleccionar distrito...</option>
+                    {(cfgActiva.dlMax === 6 ? DISTRITOS_LOCALES.slice(0, 6) : DISTRITOS_LOCALES).map((dl) => (
+                      <option key={dl} value={dl}>{dl}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              {has("seccion") && (
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1.5 uppercase tracking-wider">Sección Electoral</label>
+                  <input type="text" list="secciones-list-dyn" value={seccion} onChange={(e) => setSeccion(e.target.value)} placeholder="Ej. 42" className="w-full bg-[#0f172a] border border-[#334155] text-white rounded-lg px-3 py-2.5 text-sm outline-none focus:border-blue-500 transition-colors placeholder:text-slate-600" />
+                  <datalist id="secciones-list-dyn">{SECCIONES.map((s) => <option key={s} value={s} />)}</datalist>
+                </div>
+              )}
+              {has("zonaElectoral") && (
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1.5 uppercase tracking-wider">Zona Electoral</label>
+                  <input type="text" value={zonaElectoral} onChange={(e) => setZonaElectoral(e.target.value)} placeholder="Ej. 39" className="w-full bg-[#0f172a] border border-[#334155] text-white rounded-lg px-3 py-2.5 text-sm outline-none focus:border-blue-500 transition-colors placeholder:text-slate-600" />
+                </div>
+              )}
+              {has("referencia") && (
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1.5 uppercase tracking-wider">Referencia</label>
+                  <input type="text" value={referencia} onChange={(e) => setReferencia(e.target.value)} placeholder="Ej. Frente al parque" className="w-full bg-[#0f172a] border border-[#334155] text-white rounded-lg px-3 py-2.5 text-sm outline-none focus:border-blue-500 transition-colors placeholder:text-slate-600" />
+                </div>
+              )}
+              {has("participacion") && (
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1.5 uppercase tracking-wider">Participación <span className="text-slate-500 normal-case">(%)</span></label>
+                  <input type="number" min="0" max="100" step="0.1" value={participacion} onChange={(e) => setParticipacion(e.target.value)} placeholder="Ej. 63.4" className="w-full bg-[#0f172a] border border-[#334155] text-white rounded-lg px-3 py-2.5 text-sm outline-none focus:border-blue-500 transition-colors placeholder:text-slate-600" />
+                </div>
+              )}
+              {has("direccion") && (
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1.5 uppercase tracking-wider">Dirección</label>
+                  <input type="text" value={direccion} onChange={(e) => setDireccion(e.target.value)} placeholder="Ej. Av. 20 de Noviembre 123" className="w-full bg-[#0f172a] border border-[#334155] text-white rounded-lg px-3 py-2.5 text-sm outline-none focus:border-blue-500 transition-colors placeholder:text-slate-600" />
+                </div>
+              )}
+              {has("telefono") && (
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1.5 uppercase tracking-wider">Teléfono</label>
+                  <input type="text" value={telefono} onChange={(e) => setTelefono(e.target.value)} placeholder="Ej. 618 123 4567" className="w-full bg-[#0f172a] border border-[#334155] text-white rounded-lg px-3 py-2.5 text-sm outline-none focus:border-blue-500 transition-colors placeholder:text-slate-600" />
+                </div>
+              )}
+              {has("zona") && (
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1.5 uppercase tracking-wider">Zona</label>
+                  <input type="text" value={zona} onChange={(e) => setZona(e.target.value)} placeholder="Ej. Norte, Centro..." className="w-full bg-[#0f172a] border border-[#334155] text-white rounded-lg px-3 py-2.5 text-sm outline-none focus:border-blue-500 transition-colors placeholder:text-slate-600" />
+                </div>
+              )}
+              {has("red") && (
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1.5 uppercase tracking-wider">Red / Dependencia</label>
+                  <select value={red} onChange={(e) => setRed(e.target.value)} className="w-full bg-[#0f172a] border border-[#334155] text-white rounded-lg px-3 py-2.5 text-sm outline-none focus:border-blue-500 cursor-pointer">
+                    <option value="">Seleccionar red...</option>
+                    {REDES_GUARDIANES.map((r) => <option key={r} value={r}>{r}</option>)}
+                  </select>
+                </div>
+              )}
+              {has("detalles") && (
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1.5 uppercase tracking-wider">Detalles</label>
+                  <textarea value={detalles} onChange={(e) => setDetalles(e.target.value)} rows={3} placeholder="Descripción adicional..." className="w-full bg-[#0f172a] border border-[#334155] text-white rounded-lg px-3 py-2.5 text-sm outline-none focus:border-blue-500 transition-colors placeholder:text-slate-600 resize-none" />
+                </div>
+              )}
+              {has("visitado") && (
+                <label className="flex items-center gap-3 bg-[#0f172a] border border-[#334155] rounded-lg px-3 py-2.5 cursor-pointer hover:border-slate-400 transition-colors">
+                  <input type="checkbox" checked={visitado} onChange={(e) => setVisitado(e.target.checked)} className="w-4 h-4 cursor-pointer accent-emerald-500 shrink-0" />
+                  <span className="text-slate-200 text-sm">Visitado</span>
+                </label>
+              )}
+              {has("atendido") && (
+                <label className="flex items-center gap-3 bg-[#0f172a] border border-[#334155] rounded-lg px-3 py-2.5 cursor-pointer hover:border-slate-400 transition-colors">
+                  <input type="checkbox" checked={atendido} onChange={(e) => setAtendido(e.target.checked)} className="w-4 h-4 cursor-pointer accent-yellow-500 shrink-0" />
+                  <span className="text-slate-200 text-sm">Atendido</span>
+                </label>
+              )}
+              {has("seleccionado") && (
+                <label className="flex items-center gap-3 bg-[#0f172a] border border-[#334155] rounded-lg px-3 py-2.5 cursor-pointer hover:border-slate-400 transition-colors">
+                  <input type="checkbox" checked={seleccionado} onChange={(e) => setSeleccionado(e.target.checked)} className="w-4 h-4 cursor-pointer accent-blue-500 shrink-0" />
+                  <span className="text-slate-200 text-sm">Seleccionado</span>
+                </label>
+              )}
+              {has("pinColor") && (
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1.5 uppercase tracking-wider">Color del Pin</label>
+                  <div className="flex items-center gap-2 bg-[#0f172a] border border-[#334155] rounded-lg px-3 py-2">
+                    <input type="color" value={pinColor} onChange={(e) => setPinColor(e.target.value)} className="w-8 h-8 rounded cursor-pointer border-0 bg-transparent p-0 shrink-0" />
+                    <span className="text-slate-300 text-sm font-mono flex-1">{pinColor}</span>
+                    <button type="button" onClick={() => setPinColor("#94a3b8")} className="text-slate-500 hover:text-slate-300 text-xs transition-colors cursor-pointer shrink-0">Reset</button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Campos Rural / Top100 / General (capas estáticas) */}
+          {capaActiva !== "pp" && !cfgActiva && (
             <>
               {/* Distrito Local */}
               <div>
@@ -489,7 +698,7 @@ const ObraModal = ({ onSaved }) => {
                   className="w-full bg-[#0f172a] border border-[#334155] text-white rounded-lg px-3 py-2.5 text-sm outline-none focus:border-blue-500 cursor-pointer"
                 >
                   <option value="">Seleccionar distrito...</option>
-                  {DISTRITOS_LOCALES.map((dl) => (
+                  {(capaActiva === "guardianes" ? DISTRITOS_LOCALES.slice(0, 6) : DISTRITOS_LOCALES).map((dl) => (
                     <option key={dl} value={dl}>
                       {dl}
                     </option>
@@ -516,6 +725,72 @@ const ObraModal = ({ onSaved }) => {
                   ))}
                 </datalist>
               </div>
+
+              {/* Campos exclusivos de Guardianes del Camino */}
+              {capaActiva === "guardianes" && (
+                <>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-300 mb-1.5 uppercase tracking-wider">
+                      Dirección
+                    </label>
+                    <input
+                      type="text"
+                      value={direccion}
+                      onChange={(e) => setDireccion(e.target.value)}
+                      placeholder="Ej. Av. 20 de Noviembre 123"
+                      className="w-full bg-[#0f172a] border border-[#334155] text-white rounded-lg px-3 py-2.5 text-sm outline-none focus:border-blue-500 transition-colors placeholder:text-slate-600"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-300 mb-1.5 uppercase tracking-wider">
+                      Teléfono
+                    </label>
+                    <input
+                      type="text"
+                      value={telefono}
+                      onChange={(e) => setTelefono(e.target.value)}
+                      placeholder="Ej. 618 123 4567"
+                      className="w-full bg-[#0f172a] border border-[#334155] text-white rounded-lg px-3 py-2.5 text-sm outline-none focus:border-blue-500 transition-colors placeholder:text-slate-600"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-300 mb-1.5 uppercase tracking-wider">
+                      Zona
+                    </label>
+                    <input
+                      type="text"
+                      value={zona}
+                      onChange={(e) => setZona(e.target.value)}
+                      placeholder="Ej. Norte, Centro..."
+                      className="w-full bg-[#0f172a] border border-[#334155] text-white rounded-lg px-3 py-2.5 text-sm outline-none focus:border-blue-500 transition-colors placeholder:text-slate-600"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-300 mb-1.5 uppercase tracking-wider">
+                      Red
+                    </label>
+                    <select
+                      value={red}
+                      onChange={(e) => setRed(e.target.value)}
+                      className="w-full bg-[#0f172a] border border-[#334155] text-white rounded-lg px-3 py-2.5 text-sm outline-none focus:border-blue-500 cursor-pointer"
+                    >
+                      <option value="">Seleccionar red...</option>
+                      {REDES_GUARDIANES.map((r) => (
+                        <option key={r} value={r}>{r}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <label className="flex items-center gap-3 bg-[#0f172a] border border-[#334155] rounded-lg px-3 py-2.5 cursor-pointer hover:border-slate-400 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={atendido}
+                      onChange={(e) => setAtendido(e.target.checked)}
+                      className="w-4 h-4 cursor-pointer accent-yellow-500 shrink-0"
+                    />
+                    <span className="text-slate-200 text-sm">Atendido</span>
+                  </label>
+                </>
+              )}
 
               {/* Zona Electoral y Referencia (solo Rural y Top 100) */}
               {(capaActiva === "rural" || capaActiva === "top100") && (
@@ -560,6 +835,19 @@ const ObraModal = ({ onSaved }) => {
                     />
                   </div>
                 </>
+              )}
+
+              {/* Visitado (Rural / Top 100) */}
+              {(capaActiva === "rural" || capaActiva === "top100") && (
+                <label className="flex items-center gap-3 bg-[#0f172a] border border-[#334155] rounded-lg px-3 py-2.5 cursor-pointer hover:border-slate-400 transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={visitado}
+                    onChange={(e) => setVisitado(e.target.checked)}
+                    className="w-4 h-4 cursor-pointer accent-emerald-500 shrink-0"
+                  />
+                  <span className="text-slate-200 text-sm">Visitado</span>
+                </label>
               )}
 
               {/* Detalles */}
@@ -636,7 +924,7 @@ const ObraModal = ({ onSaved }) => {
         </div>
 
         {/* Footer */}
-        <div className="px-6 pb-5 pt-4 border-t border-[#334155] shrink-0 flex gap-3">
+        <div className="px-4 sm:px-6 pb-5 pt-3 sm:pt-4 border-t border-[#334155] shrink-0 flex gap-3">
           <button
             onClick={() => closeModal()}
             className="flex-1 bg-[#334155] hover:bg-[#475569] text-slate-200 text-sm font-medium py-2.5 rounded-lg transition-colors cursor-pointer"

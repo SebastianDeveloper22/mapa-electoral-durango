@@ -76,6 +76,29 @@ service cloud.firestore {
       allow delete: if isEditorOrAdmin();
     }
 
+    // ── Guardianes del Camino ─────────────────────────────────────────────────
+
+    match /marcadores_guardianes/{docId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isEditorOrAdmin();
+      allow delete: if isEditorOrAdmin();
+    }
+
+    // ── Colecciones dinámicas (configuración) ─────────────────────────────────
+
+    match /colecciones_config/{docId} {
+      allow read: if isAuthenticated();
+      allow write, delete: if isAdmin();
+    }
+
+    // ── Marcadores de colecciones dinámicas ───────────────────────────────────
+
+    match /marcadores_custom/{docId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isEditorOrAdmin();
+      allow delete: if isEditorOrAdmin();
+    }
+
     // ── Módulo PP: Papelera de auditoría ──────────────────────────────────────
 
     match /papelera/{papeleraId} {

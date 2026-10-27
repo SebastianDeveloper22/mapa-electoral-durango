@@ -1,16 +1,17 @@
 import { useEffect } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocsFromServer } from 'firebase/firestore';
 import { auth, db } from '../services/firebase';
 import { useAuthStore } from '../store/authStore';
 
 const fetchUserRole = async (email) => {
   try {
     const q = query(collection(db, 'roles'), where('email', '==', email));
-    const snap = await getDocs(q);
+    const snap = await getDocsFromServer(q);
     if (!snap.empty) return snap.docs[0].data().rol;
     return 'lector';
-  } catch {
+  } catch (err) {
+    console.error('[useAuth] fetchUserRole error:', err);
     return 'lector';
   }
 };

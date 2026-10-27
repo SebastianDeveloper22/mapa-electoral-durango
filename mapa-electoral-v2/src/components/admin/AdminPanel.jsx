@@ -7,12 +7,13 @@ import {
 } from "../../services/adminService";
 import { useToast } from "../ui/Toast";
 
-const ROLES_OPCIONES = ["lector", "editor", "admin"];
+const ROLES_OPCIONES = ["lector", "editor", "admin", "presidente"];
 
 const ROL_BADGE = {
-  lector: "bg-slate-700 text-slate-300",
-  editor: "bg-blue-900/60 text-blue-300",
-  admin: "bg-purple-900/60 text-purple-300",
+  lector:     "bg-slate-700 text-slate-300",
+  editor:     "bg-blue-900/60 text-blue-300",
+  admin:      "bg-purple-900/60 text-purple-300",
+  presidente: "bg-amber-900/60 text-amber-300",
 };
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -96,8 +97,8 @@ const AdminPanel = ({ open, onClose }) => {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="w-full max-w-lg bg-[#1e293b] border border-[#334155] rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4">
+      <div className="w-full sm:max-w-lg bg-[#1e293b] border border-[#334155] rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[92vh] sm:max-h-[90vh]">
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-[#334155] shrink-0">
           <div>

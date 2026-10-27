@@ -31,20 +31,20 @@ import {
  */
 const HeaderElectoral = ({ onBack }) => (
   <div
-    className="absolute top-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-3
+    className="absolute top-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 md:gap-3
                   bg-[#1e293b]/90 backdrop-blur-sm border border-[#334155]
-                  rounded-full px-5 py-2 shadow-xl pointer-events-auto"
+                  rounded-full px-3 md:px-5 py-2 shadow-xl pointer-events-auto"
   >
-    <span className="text-lg">🗳️</span>
-    <span className="text-white text-sm font-semibold tracking-wide">
+    <span className="text-base md:text-lg">🗳️</span>
+    <span className="text-white text-xs md:text-sm font-semibold tracking-wide hidden sm:inline">
       Módulo Electoral
     </span>
-    <div className="w-px h-4 bg-[#334155]" />
+    <div className="w-px h-4 bg-[#334155] hidden sm:block" />
     <button
       onClick={onBack}
       className="text-slate-400 hover:text-white text-xs font-medium transition-colors cursor-pointer"
     >
-      ← Volver a PP
+      ← <span className="hidden sm:inline">Volver a PP</span>
     </button>
   </div>
 );
@@ -118,11 +118,11 @@ const ControlesElectorales = ({ onReload }) => {
 
   return (
     <div
-      className="absolute top-4 left-4 z-20 flex flex-col gap-2 pointer-events-auto max-h-[calc(100vh-2rem)] overflow-y-auto"
+      className="absolute top-14 sm:top-4 left-2 md:left-4 z-20 flex flex-col gap-2 pointer-events-auto max-h-[calc(100vh-4rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto"
       style={{ scrollbarWidth: "none" }}
     >
       {/* Selector de elección */}
-      <div className="bg-[#1e293b]/95 backdrop-blur-sm border border-[#334155] rounded-xl p-3 shadow-xl w-56">
+      <div className="bg-[#1e293b]/95 backdrop-blur-sm border border-[#334155] rounded-xl p-2.5 md:p-3 shadow-xl w-48 md:w-56">
         <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">
           Elección
         </p>
@@ -150,7 +150,7 @@ const ControlesElectorales = ({ onReload }) => {
       </div>
 
       {/* Selector de vista */}
-      <div className="bg-[#1e293b]/95 backdrop-blur-sm border border-[#334155] rounded-xl p-3 shadow-xl w-56">
+      <div className="bg-[#1e293b]/95 backdrop-blur-sm border border-[#334155] rounded-xl p-2.5 md:p-3 shadow-xl w-48 md:w-56">
         <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">
           Vista
         </p>
@@ -177,7 +177,7 @@ const ControlesElectorales = ({ onReload }) => {
 
       {/* Filtros — solo si hay elección activa */}
       {eleccionActiva && (
-        <div className="bg-[#1e293b]/95 backdrop-blur-sm border border-[#334155] rounded-xl shadow-xl w-56 overflow-hidden">
+        <div className="bg-[#1e293b]/95 backdrop-blur-sm border border-[#334155] rounded-xl shadow-xl w-48 md:w-56 overflow-hidden">
           {/* Header del filtro */}
           <button
             onClick={() => setFiltrosAbiertos((v) => !v)}
@@ -315,23 +315,23 @@ const LeyendaPartidos = () => {
 
   return (
     <div
-      className="absolute bottom-10 left-4 z-20 pointer-events-auto
+      className="absolute bottom-10 left-2 md:left-4 z-20 pointer-events-auto
                     bg-[#1e293b]/90 backdrop-blur-sm border border-[#334155]
-                    rounded-xl p-3 shadow-xl"
+                    rounded-xl p-2.5 md:p-3 shadow-xl max-w-[180px] md:max-w-none"
     >
-      <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">
+      <p className="text-[10px] md:text-xs font-medium text-slate-400 uppercase tracking-wider mb-1.5 md:mb-2">
         Leyenda
       </p>
-      <div className="flex flex-col gap-1.5">
+      <div className="flex flex-col gap-1 md:gap-1.5">
         {PARTIDOS.map(({ clave, nombre, color }) => (
-          <div key={clave} className="flex items-center gap-2">
+          <div key={clave} className="flex items-center gap-1.5 md:gap-2">
             <span
-              className="inline-block w-3 h-3 rounded-sm shrink-0"
+              className="inline-block w-2.5 md:w-3 h-2.5 md:h-3 rounded-sm shrink-0"
               style={{ backgroundColor: color }}
             />
-            <span className="text-slate-300 text-xs">{clave}</span>
+            <span className="text-slate-300 text-[11px] md:text-xs">{clave}</span>
             <span
-              className="text-slate-500 text-xs truncate max-w-140"
+              className="text-slate-500 text-[10px] md:text-xs truncate max-w-[80px] md:max-w-140 hidden sm:inline"
               title={nombre}
             >
               {nombre}
@@ -376,9 +376,9 @@ const ResumenResultados = () => {
 
   return (
     <div
-      className="absolute bottom-10 right-4 z-20 pointer-events-auto
+      className="absolute bottom-10 right-2 md:right-4 z-20 pointer-events-auto
                     bg-[#1e293b]/90 backdrop-blur-sm border border-[#334155]
-                    rounded-xl p-4 shadow-xl min-w-200"
+                    rounded-xl p-3 md:p-4 shadow-xl min-w-[160px] md:min-w-200 max-w-[200px] md:max-w-none"
     >
       <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-3">
         Resultados — {eleccionActiva.nombre}
@@ -570,9 +570,10 @@ const ElectoralPage = () => {
       {role === ROLES.ADMIN && (
         <button
           onClick={() => setAdminEleccionesOpen(true)}
-          className="absolute top-4 right-4 z-20 flex items-center gap-1.5 bg-[#1e293b] border border-[#334155] text-slate-200 text-xs font-medium px-3 py-2 rounded-lg hover:bg-[#334155] transition-colors cursor-pointer"
+          title="Elecciones"
+          className="absolute top-4 right-2 md:right-4 z-20 flex items-center gap-1.5 bg-[#1e293b] border border-[#334155] text-slate-200 text-xs font-medium px-2.5 md:px-3 py-2 rounded-lg hover:bg-[#334155] transition-colors cursor-pointer"
         >
-          ⚙️ Elecciones
+          ⚙️ <span className="hidden md:inline">Elecciones</span>
         </button>
       )}
 

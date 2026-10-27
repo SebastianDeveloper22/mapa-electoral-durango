@@ -12,6 +12,9 @@ import {
   BarController,
 } from "chart.js";
 import { useObrasStore } from "../../store/obrasStore";
+import { useAuthStore } from "../../store/authStore";
+import { useColeccionesStore } from "../../store/coleccionesStore";
+import { ROLES } from "../../config";
 
 Chart.register(
   ArcElement, BarElement, CategoryScale, LinearScale,
@@ -19,12 +22,13 @@ Chart.register(
 );
 
 const TABS = [
-  { key: "pp",        label: "PP" },
-  { key: "rural",     label: "Rural" },
-  { key: "top100",    label: "Top 100" },
-  { key: "general",   label: "Laguna" },
-  { key: "capital",   label: "Capital" },
+  { key: "pp",         label: "PP" },
+  { key: "rural",      label: "Rural" },
+  { key: "top100",     label: "Top 100" },
+  { key: "general",    label: "Laguna" },
+  { key: "capital",    label: "Capital" },
   { key: "municipios", label: "Municipios" },
+  { key: "guardianes", label: "Guardianes" },
 ];
 
 const strHash = (s) => {
@@ -47,7 +51,7 @@ const colorDL = (i) => COLORES_DL[i % COLORES_DL.length];
 
 // ── Gráficas por tipo (dona) + eje secundario (barras) ──────────────────────
 
-const useGraficas = (open, items, ejeSecundario, claveEje, modoParticipacion = false) => {
+const useGraficas = (open, items, ejeSecundario, claveEje, modoParticipacion = false, claveEjePrimario = "tipo") => {
   const donaRef = useRef(null);
   const barraRef = useRef(null);
   const donaInst = useRef(null);
@@ -105,42 +109,43 @@ const useGraficas = (open, items, ejeSecundario, claveEje, modoParticipacion = f
           : `<p style="font-size:11px;color:#64748b;">Sin datos de participación.</p>`;
       }
     } else {
-      // ── Gráfica 1: Dona por tipo ──
-      const porTipoKey = {};
-      const tipoVisual = {};
+      // ── Gráfica 1: Dona por claveEjePrimario (tipo por defecto, red para guardianes) ──
+      const porKey = {};
+      const keyVisual = {};
       items.forEach((item) => {
-        const tipoOrig = (item.tipo || "Sin Especificar").trim();
-        const key = normalizar(tipoOrig);
-        porTipoKey[key] = (porTipoKey[key] || 0) + 1;
-        if (!tipoVisual[key])
-          tipoVisual[key] = tipoOrig.charAt(0).toUpperCase() + tipoOrig.slice(1);
+        const valOrig = (item[claveEjePrimario] || "Sin Especificar").trim();
+        const key = normalizar(valOrig);
+        porKey[key] = (porKey[key] || 0) + 1;
+        if (!keyVisual[key])
+          keyVisual[key] = valOrig.charAt(0).toUpperCase() + valOrig.slice(1);
       });
 
-      const tipoKeys = Object.keys(porTipoKey);
-      const tipoColors = tipoKeys.map(colorFromStr);
+      const keys = Object.keys(porKey);
+      const keyColors = keys.map(colorFromStr);
+      const tituloG1 = claveEjePrimario === "red" ? "Por Red" : "Por Tipo";
 
       donaInst.current = new Chart(donaRef.current, {
         type: "doughnut",
         data: {
-          labels: tipoKeys.map((k) => tipoVisual[k]),
-          datasets: [{ data: tipoKeys.map((k) => porTipoKey[k]), backgroundColor: tipoColors, borderWidth: 0, hoverOffset: 4 }],
+          labels: keys.map((k) => keyVisual[k]),
+          datasets: [{ data: keys.map((k) => porKey[k]), backgroundColor: keyColors, borderWidth: 0, hoverOffset: 4 }],
         },
         options: {
           responsive: true, maintainAspectRatio: false,
           plugins: {
             legend: { display: false },
-            title: { display: true, text: "Por Tipo", color: "#94a3b8", font: { size: 11 } },
+            title: { display: true, text: tituloG1, color: "#94a3b8", font: { size: 11 } },
           },
         },
       });
 
       const legendEl = document.getElementById("stats-legend");
       if (legendEl) {
-        legendEl.innerHTML = tipoKeys.map((k, i) => `
+        legendEl.innerHTML = keys.map((k, i) => `
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">
-            <div style="min-width:10px;height:10px;border-radius:2px;background:${tipoColors[i]}"></div>
-            <span style="flex:1;font-size:11px;color:#e2e8f0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${tipoVisual[k]}</span>
-            <span style="color:#94a3b8;font-size:11px;font-weight:bold;">${porTipoKey[k]}</span>
+            <div style="min-width:10px;height:10px;border-radius:2px;background:${keyColors[i]}"></div>
+            <span style="flex:1;font-size:11px;color:#e2e8f0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${keyVisual[k]}</span>
+            <span style="color:#94a3b8;font-size:11px;font-weight:bold;">${porKey[k]}</span>
           </div>
         `).join("");
       }
@@ -180,8 +185,8 @@ const useGraficas = (open, items, ejeSecundario, claveEje, modoParticipacion = f
 
 // ── Panel de una pestaña ──────────────────────────────────────────────────────
 
-const TabPanel = ({ open, items, ejeSecundario, claveEje, modoParticipacion, onExportar }) => {
-  const { donaRef, barraRef } = useGraficas(open, items, ejeSecundario, claveEje, modoParticipacion);
+const TabPanel = ({ open, items, ejeSecundario, claveEje, modoParticipacion, claveEjePrimario, onExportar }) => {
+  const { donaRef, barraRef } = useGraficas(open, items, ejeSecundario, claveEje, modoParticipacion, claveEjePrimario);
 
   if (!open) return null;
 
@@ -200,14 +205,14 @@ const TabPanel = ({ open, items, ejeSecundario, claveEje, modoParticipacion, onE
         <span className="text-white text-2xl font-bold">{items.length}</span>
       </div>
 
-      <div className="flex gap-3 mb-4" style={{ height: "170px" }}>
-        <div className="flex-1 relative">
+      <div className="flex flex-col sm:flex-row gap-3 mb-4" style={{ minHeight: "140px" }}>
+        <div className="flex-1 relative" style={{ height: "150px" }}>
           <canvas ref={donaRef} />
         </div>
-        <div id="stats-legend" className="w-2/5 overflow-y-auto pr-1" style={{ scrollbarWidth: "thin" }} />
+        <div id="stats-legend" className="w-full sm:w-2/5 max-h-[120px] sm:max-h-none overflow-y-auto pr-1" style={{ scrollbarWidth: "thin" }} />
       </div>
 
-      <div className="relative mb-4" style={{ height: "160px" }}>
+      <div className="relative mb-4" style={{ height: "140px" }}>
         <canvas ref={barraRef} />
       </div>
 
@@ -223,8 +228,21 @@ const TabPanel = ({ open, items, ejeSecundario, claveEje, modoParticipacion, onE
 
 // ── Modal principal ───────────────────────────────────────────────────────────
 
+const TABS_PRESIDENTE = new Set(["pp", "rural", "top100", "guardianes"]);
+
 const StatsModal = ({ open, onClose }) => {
   const { obras, extras } = useObrasStore();
+  const { role } = useAuthStore();
+  const { coleccionesConfig } = useColeccionesStore();
+  const isPresidente = role === ROLES.PRESIDENTE;
+
+  // Tabs estáticas + tabs dinámicas (filtradas por rol)
+  const tabsDinamicas = coleccionesConfig
+    .filter((c) => !(isPresidente && c.ocultarPresidente))
+    .map(({ key, label }) => ({ key, label, dinamica: true }));
+  const tabsBase = isPresidente ? TABS.filter((t) => TABS_PRESIDENTE.has(t.key)) : TABS;
+  const tabsVisibles = [...tabsBase, ...tabsDinamicas];
+
   const [tabActiva, setTabActiva] = useState("pp");
 
   // extras === null significa que PinLayer todavía no ha terminado de cargar
@@ -250,10 +268,11 @@ const StatsModal = ({ open, onClose }) => {
   const general    = extras?.general    ?? [];
   const capital    = extras?.capital    ?? [];
   const municipios = extras?.municipios ?? [];
+  const guardianes = extras?.guardianes ?? [];
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-[#1e293b] border border-[#334155] rounded-2xl shadow-2xl p-6 max-h-[90vh] overflow-y-auto">
+      <div className="w-full max-w-md bg-[#1e293b] border border-[#334155] rounded-2xl shadow-2xl p-4 sm:p-6 max-h-[90vh] overflow-y-auto">
 
         {/* Header */}
         <div className="flex items-center justify-between mb-1">
@@ -263,12 +282,12 @@ const StatsModal = ({ open, onClose }) => {
         <p className="text-xs text-slate-400 mb-4">Análisis en tiempo real por capa.</p>
 
         {/* Tabs */}
-        <div className="flex gap-1 mb-4 bg-[#0f172a] p-1 rounded-lg">
-          {TABS.map(({ key, label }) => (
+        <div className="flex flex-wrap gap-1 mb-4 bg-[#0f172a] p-1 rounded-lg">
+          {tabsVisibles.map(({ key, label }) => (
             <button
               key={key}
               onClick={() => setTabActiva(key)}
-              className={`flex-1 text-xs font-medium py-1.5 rounded-md transition-colors cursor-pointer ${
+              className={`flex-1 min-w-[60px] text-[11px] sm:text-xs font-medium py-1.5 rounded-md transition-colors cursor-pointer ${
                 tabActiva === key
                   ? "bg-blue-600 text-white"
                   : "text-slate-400 hover:text-slate-200"
@@ -339,6 +358,40 @@ const StatsModal = ({ open, onClose }) => {
                 onExportar={() => exportarCSV(municipios, "Reporte_Espectaculares_Municipios", ["distritoLocal", "seccion", "detalles"])}
               />
             )}
+            {tabActiva === "guardianes" && (
+              <TabPanel
+                open
+                items={guardianes}
+                ejeSecundario="Por Distrito Local"
+                claveEje="distritoLocal"
+                claveEjePrimario="red"
+                onExportar={() => exportarCSV(guardianes, "Reporte_Guardianes", ["distritoLocal", "seccion", "zona", "red", "direccion", "telefono", "atendido"])}
+              />
+            )}
+
+            {/* Tabs de colecciones dinámicas */}
+            {tabsDinamicas.map(({ key }) => {
+              if (tabActiva !== key) return null;
+              const cfg = coleccionesConfig.find((c) => c.key === key);
+              const campos = cfg?.campos ?? [];
+              const items = extras?.[key] ?? [];
+              const modoParticipacion = campos.includes("participacion");
+              const claveEjePrimario = campos.includes("red") ? "red" : "tipo";
+              const claveEje = campos.includes("distritoLocal") ? "distritoLocal" : "tipo";
+              const camposExport = campos.filter((f) => !["nombre", "tipo", "pinColor", "visitado", "atendido", "seleccionado"].includes(f));
+              return (
+                <TabPanel
+                  key={key}
+                  open
+                  items={items}
+                  ejeSecundario={campos.includes("distritoLocal") ? "Por Distrito Local" : "Por Tipo"}
+                  claveEje={claveEje}
+                  claveEjePrimario={claveEjePrimario}
+                  modoParticipacion={modoParticipacion}
+                  onExportar={() => exportarCSV(items, `Reporte_${key}`, camposExport)}
+                />
+              );
+            })}
           </>
         )}
       </div>
